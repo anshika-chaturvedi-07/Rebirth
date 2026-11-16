@@ -109,6 +109,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.05; text-wrap:
 .maplibregl-popup-content { border-radius: 20px !important; padding: 14px 16px !important; font-family: var(--font-sans); color: var(--color-plum); box-shadow: 0 16px 30px -12px rgb(61 44 90 / .35) !important; }
 .maplibregl-ctrl-group { border-radius: 14px !important; overflow: hidden; }
 
+/* AI scan line over the cover photo */
+@keyframes scan { 0%, 100% { transform: translateY(-60px); } 50% { transform: translateY(60px); } }
+
 /* confetti */
 .confetti-piece {
   position: fixed; z-index: 100; width: 12px; height: 12px; pointer-events: none;

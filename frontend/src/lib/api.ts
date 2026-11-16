@@ -18,6 +18,21 @@ function readDetail(body: unknown, status: number): string {
   return "That didn't work. Please check and try again.";
 }
 
+/** Upload a file as multipart/form-data under the field name "file". */
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  let res: Response;
+  try {
+    res = await fetch(path, { method: "POST", body: form, credentials: "same-origin" });
+  } catch {
+    throw new ApiError(0, "Upload failed. Check your connection and try again.");
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, readDetail(body, res.status));
+  return body as T;
+}
+
 export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   let res: Response;
   try {

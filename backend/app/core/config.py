@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     map_center_lng: float = 77.5946
     default_city: str = "Bengaluru"
 
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:3300"]
 
     # SQLite needs no setup for local development; point this at Postgres in docker/production.
     database_url: str = "sqlite:///./rebirth.db"
@@ -32,6 +32,18 @@ class Settings(BaseSettings):
     session_days: int = 7
     session_cookie: str = "rebirth_session"
     cookie_secure: bool = False  # True behind HTTPS
+
+    # Photos
+    media_dir: str = "media"
+    max_upload_mb: int = 8
+    photo_max_px: int = 1600
+    max_photos_per_listing: int = 4
+
+    # AI vision (optional dependency: requirements-ml.txt)
+    vision_enabled: bool = True
+    vision_model: str = "ViT-B-32"
+    vision_pretrained: str = "laion2b_s34b_b79k"
+    vision_preload: bool = True  # warm the model up in a background thread at startup (~600 MB RAM)
 
     # Lifecycle rules
     marketplace_days: int = 14  # how long non-perishables stay in the marketplace before the recycle stage

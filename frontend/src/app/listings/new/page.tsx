@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { Character } from "@/components/characters/Character";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { EmptyState, ErrorNote } from "@/components/ui/EmptyState";
 import { LocationPicker, type PickedLocation } from "@/components/map/LocationPicker";
+import { PhotoSnap, type UploadedPhoto, type VisionResult } from "@/components/listings/PhotoSnap";
 import { FieldError, Input, Label, localDateTime, Select, Textarea } from "@/components/ui/FormBits";
 import { api } from "@/lib/api";
 import { CATEGORY_TILES } from "@/lib/categories";
@@ -28,7 +29,29 @@ function NewListingForm({ user }: { user: User }) {
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loc, setLoc] = useState<PickedLocation | null>(null);
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [title, setTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [subcategory, setSubcategory] = useState("");
+  const [condition, setCondition] = useState<Condition>("good");
+  const [aiFilled, setAiFilled] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const cat = categories.find((c) => c.slug === category);
+
+  // Apply AI suggestions without overwriting anything the donor typed themselves.
+  const applySuggestion = useCallback(
+    (r: VisionResult, pick?: string) => {
+      const slug = pick ?? (r.confident ? r.category : null);
+      if (!slug) return;
+      const sameAsAi = slug === r.category;
+      setCategory(slug);
+      setSubcategory(sameAsAi ? (r.subcategory ?? "") : "");
+      if (sameAsAi && r.title && !titleTouched) setTitle(r.title);
+      if (sameAsAi && r.condition) setCondition(r.condition);
+      setAiFilled(true);
+    },
+    [titleTouched],
+  );
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,15 +75,16 @@ function NewListingForm({ user }: { user: User }) {
           title: d.title.trim(),
           description: (d.description ?? "").trim(),
           category,
-          subcategory: d.subcategory || null,
+          subcategory: subcategory || null,
           quantity: qty,
-          condition: d.condition as Condition,
+          condition,
           city: d.city.trim(),
           area: (d.area ?? "").trim(),
           lat: loc?.lat ?? null,
           lng: loc?.lng ?? null,
           original_price_inr: d.original_price_inr ? Number(d.original_price_inr) : null,
           best_before: d.best_before ? new Date(d.best_before).toISOString() : null,
+          photo_ids: photos.map((p) => p.id),
         },
       });
       burstConfetti(btn);
@@ -83,12 +107,16 @@ function NewListingForm({ user }: { user: User }) {
           <p className="text-plum-soft">It&apos;s free for NGOs and people in need first. You can withdraw it any time.</p>
         </div>
 
+        <PhotoSnap photos={photos} onPhotosChange={setPhotos} onSuggest={applySuggestion} onBlockedChange={setBlocked} />
+
         <fieldset>
-          <legend className="mb-2 font-display text-[1.05rem] font-bold">What kind of thing is it?</legend>
+          <legend className="mb-2 font-display text-[1.05rem] font-bold">
+            What kind of thing is it? {aiFilled && <span className="ml-1 rounded-full bg-lavender-t px-2 py-0.5 font-sans text-xs font-extrabold text-violet">✨ AI suggested</span>}
+          </legend>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7">
             {CATEGORY_TILES.map((c) => (
               <label key={c.slug} className={`cursor-pointer rounded-2xl p-2 text-center text-xs font-bold transition-transform hover:-translate-y-0.5 ${c.tint} ${category === c.slug ? "clay-sm outline-3 outline-plum/40 -translate-y-0.5" : ""}`}>
-                <input type="radio" name="category" value={c.slug} checked={category === c.slug} onChange={() => setCategory(c.slug)} className="sr-only" />
+                <input type="radio" name="category" value={c.slug} checked={category === c.slug} onChange={() => { setCategory(c.slug); setSubcategory(""); }} className="sr-only" />
                 <span className="block text-2xl" aria-hidden="true">{c.icon}</span>
                 {c.name}
               </label>
@@ -99,13 +127,14 @@ function NewListingForm({ user }: { user: User }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" name="title" maxLength={140} placeholder="e.g. Dell laptop, working, with charger" aria-describedby="title-err" />
+            <Input id="title" name="title" maxLength={140} placeholder="e.g. Dell laptop, working, with charger" aria-describedby="title-err"
+              value={title} onChange={(e) => { setTitle(e.target.value); setTitleTouched(true); }} />
             <FieldError id="title-err">{errors.title}</FieldError>
           </div>
           {!!cat?.subcategories.length && (
             <div>
               <Label htmlFor="subcategory">Type</Label>
-              <Select id="subcategory" name="subcategory" key={category} defaultValue="">
+              <Select id="subcategory" name="subcategory" value={subcategory} onChange={(e) => setSubcategory(e.target.value)}>
                 <option value="">Choose…</option>
                 {cat.subcategories.map((s) => <option key={s}>{s}</option>)}
               </Select>
@@ -118,7 +147,7 @@ function NewListingForm({ user }: { user: User }) {
           </div>
           <div>
             <Label htmlFor="condition">Condition</Label>
-            <Select id="condition" name="condition" defaultValue="good">
+            <Select id="condition" name="condition" value={condition} onChange={(e) => setCondition(e.target.value as Condition)}>
               {Object.entries(CONDITION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </Select>
           </div>
@@ -144,7 +173,8 @@ function NewListingForm({ user }: { user: User }) {
         </div>
 
         {formError && <ErrorNote>{formError}</ErrorNote>}
-        <Button type="submit" variant="coral" disabled={busy} className="w-full sm:w-auto sm:justify-self-start">
+        {blocked && <ErrorNote>This item can&apos;t be listed on REBIRTH. Remove the photo if it was a mistake.</ErrorNote>}
+        <Button type="submit" variant="coral" disabled={busy || blocked} className="w-full sm:w-auto sm:justify-self-start">
           {busy ? "Listing…" : "List it 🌱"}
         </Button>
       </form>
@@ -160,7 +190,6 @@ function NewListingForm({ user }: { user: User }) {
           <li className="rounded-2xl bg-white/70 p-3">🏷️ If nobody claims it, it moves to the <b>marketplace</b> at a fair low price.</li>
           <li className="rounded-2xl bg-white/70 p-3">♻️ Finally <b>repairers and recyclers</b> can take it. It never goes to the bin.</li>
         </ol>
-        <p className="mt-3 text-xs font-semibold text-plum-soft">Photo upload with AI recognition is coming in a later update.</p>
       </aside>
     </div>
   );

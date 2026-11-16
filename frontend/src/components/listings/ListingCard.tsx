@@ -19,8 +19,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
       href={`/listings/${listing.id}`}
       className="clay group flex min-w-0 flex-col rounded-[2rem] bg-card p-4 transition-transform duration-200 [transition-timing-function:cubic-bezier(.3,1.6,.5,1)] hover:-translate-y-1.5"
     >
-      <div className={`relative grid h-32 place-items-center rounded-3xl ${tile.tint}`}>
-        <span className="text-6xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" aria-hidden="true">{tile.icon}</span>
+      <div className={`relative grid h-32 place-items-center overflow-hidden rounded-3xl ${tile.tint}`}>
+        {listing.photos[0] ? (
+          // eslint-disable-next-line @next/next/no-img-element -- user uploads served by the API
+          <img src={listing.photos[0]} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        ) : (
+          <span className="text-6xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" aria-hidden="true">{tile.icon}</span>
+        )}
         <span className="absolute left-3 top-3"><StageChip stage={listing.stage} /></span>
         {listing.stage === "marketplace" && listing.price_inr != null && (
           <span className="absolute right-3 top-3 rounded-full bg-card px-2.5 py-1 text-xs font-extrabold">{formatINR(listing.price_inr)}</span>

@@ -1,0 +1,6 @@
+# Optional AI vision stack (Phase 4). Install on top of requirements.txt:
+#   pip install -r requirements-ml.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# Without it the app still works; photo recognition just reports itself as unavailable.
+torch>=2.6
+torchvision>=0.21
+open_clip_torch==2.29.0

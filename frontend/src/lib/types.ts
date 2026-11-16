@@ -47,6 +47,7 @@ export interface Listing {
   lng: number | null;
   location_exact: boolean;
   distance_km: number | null;
+  photos: string[];
   price_inr: number | null;
   status: "active" | "reserved" | "completed" | "withdrawn";
   stage: Stage;

@@ -21,7 +21,7 @@ REBIRTH connects unused resources (surplus food, leftover building materials, ol
 | Backend | FastAPI (Python), Pydantic, SQLAlchemy 2.0, Alembic |
 | Data | PostgreSQL (SQLite for local dev), Redis |
 | Maps | MapLibre GL with free OpenFreeMap vector tiles, repainted in the REBIRTH palette |
-| AI / data science | PyTorch + CLIP (vision), LightGBM (matching), Prophet (forecasting), OR-Tools (routing) |
+| AI / data science | PyTorch + OpenCLIP zero-shot vision (live); LightGBM (matching), Prophet (forecasting), OR-Tools (routing) planned |
 | Infra | Docker, GitHub Actions, Vercel + Render + Supabase |
 
 ## Project structure
@@ -50,7 +50,16 @@ rebirth/
 
 ## Run it locally
 
-**Frontend** (http://localhost:3000, or another port with `npm run dev -- -p 3001`)
+REBIRTH uses its own fixed ports so it can run next to other local projects:
+
+| Service | URL / port |
+|---|---|
+| Website | http://localhost:3300 |
+| API + docs | http://localhost:8300/docs |
+| Postgres (docker compose) | localhost:5442 |
+| Redis (docker compose) | localhost:6390 |
+
+**Frontend** → http://localhost:3300
 
 ```bash
 cd frontend
@@ -58,16 +67,17 @@ npm install
 npm run dev
 ```
 
-**Backend** (http://localhost:8000/docs)
+**Backend** → http://localhost:8300/docs
 
 ```bash
 cd backend
 python -m venv .venv
 .venv\Scripts\activate        # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+pip install -r requirements-ml.txt --extra-index-url https://download.pytorch.org/whl/cpu   # optional: AI photo recognition
 alembic upgrade head          # create the database (SQLite by default, Postgres via DATABASE_URL)
 python -m app.seed            # demo data for Bengaluru (add --reset to start over)
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8300
 ```
 
 The frontend forwards `/api/*` to the backend (see `frontend/next.config.ts`), so sessions use a same-origin, httpOnly cookie.
@@ -111,6 +121,18 @@ A listing's stage comes from two timestamps set when it is created (`priority_un
 - **Built-in places list** of Indian cities and Bengaluru localities, with aliases such as "Bangalore". No addresses are sent to a third-party geocoder.
 - **Privacy:** other users see a donor's location rounded to about 100 m. Only the donor and a requester whose request was accepted see the exact spot. Organisations' needs are shown exactly; individuals' needs are rounded.
 
+## AI photo recognition
+
+Snap a photo when listing an item and REBIRTH suggests the **category, type, title and condition**.
+
+- **Model:** OpenCLIP ViT-B/32, used *zero-shot*. The photo is compared with about 70 written descriptions ("a photo of a laptop computer", "a stack of red bricks", …) mapped to REBIRTH's 14 categories. No custom training data is needed, and new item types are one line in `backend/app/vision/labels.py`.
+- **Condition:** a second pass compares the photo with "brand new", "well-kept", "worn" and "broken" descriptions of the recognised item. The donor can always change it.
+- **Safety checks:** photos that aren't an item (selfies, screenshots, landscapes) are flagged; restricted items (medicines, alcohol, weapons, tobacco) block the listing; food that looks spoiled shows a warning.
+- **Privacy:** every upload is re-encoded, so EXIF metadata, including the **GPS location phones embed**, is removed. The model runs on REBIRTH's own server, so photos aren't sent to third-party AI services.
+- **Speed (laptop CPU):** the model and all label embeddings are warmed up in a background thread at startup. After that, an analysis takes about 0.5 to 1 s.
+- **Optional dependency:** without `requirements-ml.txt` the API still runs. `/api/vision/status` reports AI as unavailable and donors fill in the form themselves.
+- **Tests:** a keyword-based fake engine tests the mapping and safety logic in milliseconds; one optional test runs the real model.
+
 ## Design system: "clay world"
 
 Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Baloo 2 + Nunito type (Baloo 2 also covers Hindi), and an original cast of cartoon characters drawn in SVG that blink, wave and peek over the UI.
@@ -130,7 +152,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 - [x] **Phase 1:** design system, character cast, landing page, sign-in / sign-up UI, API skeleton
 - [x] **Phase 2:** accounts and roles (JWT cookie sessions), listings, requests and needs, database + migrations
 - [x] **Phase 3:** interactive map, near-me search, locality autocomplete, location privacy
-- [ ] **Phase 4:** AI photo identification and condition assessment
+- [x] **Phase 4:** photo uploads and AI photo identification (category, title, condition, safety checks)
 - [ ] **Phase 5:** matching engine and volunteer route optimisation
 - [ ] **Phase 6:** forecasting and circular-economy analytics
 - [ ] **Phase 7:** marketplace and payments, impact reports, gamification, trust and safety

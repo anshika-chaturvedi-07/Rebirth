@@ -10,7 +10,7 @@ from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.services.geo import bounding_box, haversine_km, public_coord
 from app.db.session import utcnow
-from app.models import Claim, ClaimStatus, Listing, ListingStatus, Role, Stage, User
+from app.models import Claim, ClaimStatus, Listing, ListingStatus, Photo, Role, Stage, User
 from app.schemas import ClaimIn, ClaimOut, ListingIn, ListingOut, ListingPage, MyClaimOut, UserBrief
 from app.services.lifecycle import (
     LifecycleError,
@@ -68,6 +68,7 @@ def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime, di
         id=listing.id, title=listing.title, description=listing.description, category=listing.category,
         subcategory=listing.subcategory, quantity=listing.quantity, unit=listing.unit, condition=listing.condition,
         city=listing.city, area=listing.area, lat=lat, lng=lng, location_exact=exact,
+        photos=[p.url for p in listing.photos],
         distance_km=round(distance_km, 2) if distance_km is not None else None, price_inr=listing.price_inr,
         status=listing.status, stage=stage, stage_ends_at=stage_ends_at(listing, stage),
         priority_until=listing.priority_until, marketplace_until=listing.marketplace_until, created_at=listing.created_at,
@@ -83,7 +84,7 @@ def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime, di
 
 def load_listing(db: Session, listing_id: int) -> Listing:
     listing = db.scalar(
-        select(Listing).where(Listing.id == listing_id).options(selectinload(Listing.claims), selectinload(Listing.donor))
+        select(Listing).where(Listing.id == listing_id).options(selectinload(Listing.claims), selectinload(Listing.donor), selectinload(Listing.photos))
     )
     if listing is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Listing not found.")
@@ -130,7 +131,7 @@ def list_listings(
         like = f"%{q.lower()}%"
         stmt = stmt.where(or_(func.lower(Listing.title).like(like), func.lower(Listing.description).like(like)))
 
-    loaded = stmt.options(selectinload(Listing.claims), selectinload(Listing.donor)).order_by(Listing.created_at.desc())
+    loaded = stmt.options(selectinload(Listing.claims), selectinload(Listing.donor), selectinload(Listing.photos)).order_by(Listing.created_at.desc())
 
     if near_lat is not None and near_lng is not None:
         box = bounding_box(near_lat, near_lng, radius_km)
@@ -162,6 +163,13 @@ def create_listing(
     lat, lng = body.lat, body.lng
     if lat is None or lng is None:
         lat, lng = places.resolve(body.area, body.city) or (None, None)
+    photos: list[Photo] = []
+    if body.photo_ids:
+        ids = list(dict.fromkeys(body.photo_ids))
+        photos = list(db.scalars(select(Photo).where(Photo.id.in_(ids))).all())
+        if len(photos) != len(ids) or any(p.owner_id != user.id or p.listing_id is not None for p in photos):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Some photos couldn't be attached. Upload them again.")
+        photos.sort(key=lambda p: ids.index(p.id))
     listing = Listing(
         donor_id=user.id, title=body.title.strip(), description=body.description.strip(), category=body.category,
         subcategory=body.subcategory, quantity=body.quantity, unit=CATEGORY_BY_SLUG[body.category].unit,
@@ -170,6 +178,9 @@ def create_listing(
         priority_until=priority_until, marketplace_until=marketplace_until, created_at=now,
     )
     db.add(listing)
+    db.flush()
+    for position, photo in enumerate(photos):
+        photo.listing_id, photo.position = listing.id, position
     db.commit()
     return to_out(db, load_listing(db, listing.id), user, now)
 

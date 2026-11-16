@@ -103,6 +103,7 @@ class Listing(Base):
 
     donor: Mapped[User] = relationship(back_populates="listings")
     claims: Mapped[list["Claim"]] = relationship(back_populates="listing", order_by="Claim.created_at")
+    photos: Mapped[list["Photo"]] = relationship(back_populates="listing", order_by="Photo.position")
 
 
 class Claim(Base):
@@ -142,3 +143,24 @@ class Need(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
 
     requester: Mapped[User] = relationship()
+
+
+class Photo(Base):
+    """An uploaded image. Re-encoded on upload (EXIF, including GPS, is stripped); attached to a listing later."""
+
+    __tablename__ = "photos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    listing_id: Mapped[int | None] = mapped_column(ForeignKey("listings.id"), index=True, nullable=True)
+    filename: Mapped[str] = mapped_column(String(80), unique=True)
+    width: Mapped[int] = mapped_column(Integer)
+    height: Mapped[int] = mapped_column(Integer)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    listing: Mapped[Listing | None] = relationship(back_populates="photos")
+
+    @property
+    def url(self) -> str:
+        return f"/media/{self.filename}"

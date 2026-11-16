@@ -44,7 +44,7 @@ CATEGORIES: list[Category] = [
              subcategories=["Textbooks", "Storybooks", "Notebooks", "Art supplies"]),
     Category(slug="home-kitchen", name="Home & kitchen", name_hi="घर और रसोई", icon="🍳", color="#C2EF6B", unit="items",
              kg_per_unit=2, priority_window_hours=120, perishable=False, co2e_per_kg=3,
-             subcategories=["Utensils", "Cookware", "Decor", "Lighting"]),
+             subcategories=["Utensils", "Cookware", "Appliances", "Decor", "Lighting"]),
     Category(slug="toys-baby", name="Toys & baby items", name_hi="खिलौने", icon="🧸", color="#FFB8CB", unit="items",
              kg_per_unit=1.5, priority_window_hours=120, perishable=False, co2e_per_kg=4,
              subcategories=["Toys", "Prams", "Cribs", "Baby clothes"]),

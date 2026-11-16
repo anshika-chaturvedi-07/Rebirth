@@ -82,6 +82,7 @@ class ListingIn(BaseModel):
     lng: float | None = Field(default=None, ge=-180, le=180)
     original_price_inr: int | None = Field(default=None, ge=0, le=10_000_000)
     best_before: datetime | None = Field(default=None, description="Required for perishables such as food")
+    photo_ids: list[int] = Field(default_factory=list, max_length=4)
 
     _category = field_validator("category")(check_category)
 
@@ -107,6 +108,7 @@ class ListingOut(BaseModel):
     lat: float | None
     lng: float | None
     location_exact: bool = False  # False: rounded to ~100 m for privacy
+    photos: list[str] = []
     distance_km: float | None = None  # set when searching near a point
     price_inr: int | None
     status: str

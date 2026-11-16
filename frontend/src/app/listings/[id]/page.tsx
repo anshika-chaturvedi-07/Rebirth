@@ -238,6 +238,7 @@ function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const isNew = useSearchParams().get("new") === "1";
   const { data: listing, error, loading, reload } = useApi<Listing>(`/api/listings/${id}`);
+  const [photoIdx, setPhotoIdx] = useState(0);
 
   if (loading && !listing) return <LoadingState />;
   if (error || !listing) return <EmptyState title="We couldn't find that item" action={<ButtonLink href="/listings">Back to explore</ButtonLink>}>{error ?? "It may have been removed."}</EmptyState>;
@@ -251,13 +252,29 @@ function ListingDetail() {
       )}
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <article className="clay min-w-0 rounded-[2.25rem] bg-card p-5 sm:p-7">
-          <div className={`relative grid h-56 place-items-center rounded-[1.75rem] ${tile.tint}`}>
-            <span className="text-8xl" aria-hidden="true">{tile.icon}</span>
+          <div className={`relative grid h-56 place-items-center overflow-hidden rounded-[1.75rem] sm:h-72 ${tile.tint}`}>
+            {listing.photos[photoIdx] ? (
+              // eslint-disable-next-line @next/next/no-img-element -- user uploads served by the API
+              <img src={listing.photos[photoIdx]} alt={listing.title} className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <span className="text-8xl" aria-hidden="true">{tile.icon}</span>
+            )}
             <span className="absolute left-4 top-4"><StageChip stage={listing.stage} /></span>
             {listing.status !== "active" && (
               <span className="absolute right-4 top-4 rounded-full bg-plum px-3 py-1 text-xs font-extrabold capitalize text-white">{listing.status}</span>
             )}
           </div>
+          {listing.photos.length > 1 && (
+            <div className="mt-3 flex gap-2" role="group" aria-label="Photos">
+              {listing.photos.map((src, i) => (
+                <button key={src} onClick={() => setPhotoIdx(i)} aria-label={`Show photo ${i + 1}`} aria-pressed={i === photoIdx}
+                  className={`h-16 w-16 overflow-hidden rounded-2xl ${i === photoIdx ? "outline-3 outline-violet" : "opacity-75 hover:opacity-100"}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user uploads served by the API */}
+                  <img src={src} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
           <h1 className="mt-5 text-[clamp(1.7rem,4vw,2.4rem)] font-extrabold">{listing.title}</h1>
           <div className="mt-2 flex flex-wrap gap-1.5 text-sm font-extrabold">
             <span className="rounded-full bg-sky-t px-3 py-1">📦 {formatQty(listing.quantity, listing.unit)}</span>

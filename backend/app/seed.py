@@ -14,7 +14,8 @@ from app.core.security import hash_password
 from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.db.session import SessionLocal, utcnow
-from app.models import Claim, Listing, Need, User
+from app.models import Claim, Listing, Need, Photo, User
+from app.services import photos as photo_service
 from app.services.lifecycle import lifecycle_windows, suggest_price
 
 DEMO_PASSWORD = "rebirth-demo"
@@ -74,7 +75,9 @@ def run(reset: bool = False) -> None:
     db = SessionLocal()
     try:
         if reset:
-            for model in (Claim, Need, Listing, User):
+            for photo in db.scalars(select(Photo)).all():
+                photo_service.delete(photo.filename)
+            for model in (Claim, Photo, Need, Listing, User):
                 db.execute(delete(model))
             db.commit()
         if db.scalar(select(User.id).limit(1)):
