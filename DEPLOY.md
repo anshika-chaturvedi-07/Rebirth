@@ -65,7 +65,7 @@ Then send me the link and I'll add it to the top of the README.
 Every `git push` to `main`:
 - runs the tests on GitHub (the **CI** badge in the README),
 - redeploys the website on Vercel automatically,
-- redeploys the API on Render automatically (Render is connected to GitHub with **Auto-Deploy: On Commit**). If a deploy ever doesn't start, open **rebirth-api → Manual Deploy → Deploy latest commit**.
+- redeploys the API on Render automatically when the push changes something in `backend/` (Render is connected to GitHub with **Auto-Deploy: On Commit** and Root Directory `backend`, so README or website-only pushes skip it). To redeploy by hand, open **rebirth-api → Manual Deploy → Deploy latest commit**.
 
 ## Troubleshooting
 
