@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
@@ -8,13 +10,21 @@ from app.db.session import Base, get_db
 from app.main import app
 
 
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")  # e.g. postgresql+psycopg://... in CI; default: in-memory SQLite
+
+
 @pytest.fixture()
 def db_session():
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    if TEST_DATABASE_URL:
+        engine = create_engine(TEST_DATABASE_URL)
+        Base.metadata.drop_all(engine)  # start clean even if a previous run was interrupted
+    else:
+        engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     TestingSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     yield TestingSession
     Base.metadata.drop_all(engine)
+    engine.dispose()
 
 
 @pytest.fixture()

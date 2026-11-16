@@ -10,6 +10,7 @@ from datetime import timedelta
 
 from sqlalchemy import delete, select
 
+from app.core.config import get_settings
 from app.core.security import hash_password
 from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
@@ -127,7 +128,7 @@ def run(reset: bool = False, history: bool = True) -> None:
     try:
         if reset:
             for photo in db.scalars(select(Photo)).all():
-                photo_service.delete(photo.filename)
+                photo_service.delete(photo.filename, photo.external_url)
             for model in (Review, Report, Payment, VerificationRequest, DeliveryTask, Claim, Photo, Need, Listing, User):
                 db.execute(delete(model))
             db.commit()
@@ -135,13 +136,19 @@ def run(reset: bool = False, history: bool = True) -> None:
             print("Database already has data. Use --reset to start fresh.")
             return
 
+        settings = get_settings()
         pw = hash_password(DEMO_PASSWORD)
+        admin_pw = settings.admin_password or (None if settings.is_production else DEMO_PASSWORD)
         users: dict[str, User] = {}
         for key, role, name, email, verified in USERS:
             # demo accounts are a year old (Asha is new), so "new account" risk signals behave realistically
             joined = utcnow() - timedelta(days=2 if key == "asha" else 400)
-            users[key] = User(role=role, name=name, email=email, city="Bengaluru", password_hash=pw, verified=verified,
-                              created_at=joined)
+            password_hash = pw
+            if key == "admin":
+                # "!" can never match a bcrypt hash: without ADMIN_PASSWORD the live site has no usable admin login
+                password_hash = hash_password(admin_pw) if admin_pw else "!"
+            users[key] = User(role=role, name=name, email=email, city="Bengaluru", password_hash=password_hash,
+                              verified=verified, created_at=joined)
             db.add(users[key])
         db.flush()
 

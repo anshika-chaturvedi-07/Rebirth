@@ -196,6 +196,7 @@ class Photo(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     listing_id: Mapped[int | None] = mapped_column(ForeignKey("listings.id"), index=True, nullable=True)
     filename: Mapped[str] = mapped_column(String(80), unique=True)
+    external_url: Mapped[str | None] = mapped_column(String(400), nullable=True)  # set when stored on Cloudinary
     width: Mapped[int] = mapped_column(Integer)
     height: Mapped[int] = mapped_column(Integer)
     position: Mapped[int] = mapped_column(Integer, default=0)
@@ -205,7 +206,7 @@ class Photo(Base):
 
     @property
     def url(self) -> str:
-        return f"/media/{self.filename}"
+        return self.external_url or f"/media/{self.filename}"
 
 
 class DeliveryTask(Base):

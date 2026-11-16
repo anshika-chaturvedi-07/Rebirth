@@ -5,6 +5,8 @@ import type { NextConfig } from "next";
 const API_URL = process.env.API_URL ?? "http://localhost:8300";
 
 const nextConfig: NextConfig = {
+  // lets a production build run beside `npm run dev` without overwriting its .next folder
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${API_URL}/api/:path*` },

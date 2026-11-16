@@ -1,5 +1,7 @@
 # REBIRTH 🌍
 
+[![CI](https://github.com/anshika-chaturvedi-07/Rebirth/actions/workflows/ci.yml/badge.svg)](https://github.com/anshika-chaturvedi-07/Rebirth/actions/workflows/ci.yml)
+
 **A world where everything gets a second chance.**
 
 A restaurant has surplus food. A builder has leftover bricks. A family has an old laptop. A school needs chairs. REBIRTH connects things people no longer need with the schools, NGOs, shelters and neighbours who can use them, so that useful things don't end up in a landfill.
@@ -25,6 +27,8 @@ Every item gets three chances: **free** for people in need first, then a **low-p
 **Coming next:** a live deployment with automated tests on every push (see the [roadmap](#roadmap)).
 
 > Personal project · built for India (₹, English + Hindi). Region settings are configuration, not code.
+>
+> **Deploy it yourself for free** (Neon + Render + Vercel): see [DEPLOY.md](DEPLOY.md).
 
 ## How an item moves
 
@@ -247,7 +251,8 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 - [x] **Phase 5:** explainable matching, need-linked requests, volunteer deliveries and route optimisation
 - [x] **Phase 6:** impact and circularity analytics, supply and demand forecasting with backtests, hotspot heatmaps
 - [x] **Phase 7:** UPI payments (simulated / Razorpay test mode), verification and admin console, reports and risk signals, reviews, badges, leaderboard, PDF impact reports
-- [ ] **Phase 8:** deployment and CI
+- [x] **Phase 8 (code):** CI on SQLite + PostgreSQL, production settings, Render blueprint, Vercel setup, Cloudinary photo storage, wake-up screen ([DEPLOY.md](DEPLOY.md))
+- [ ] **Phase 8 (launch):** create the free accounts and publish the live link
 
 ## Note on data
 

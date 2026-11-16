@@ -11,6 +11,7 @@ import "@fontsource/nunito/700.css";
 import "@fontsource/nunito/800.css";
 import { ClayDefs } from "@/components/characters/ClayDefs";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ServerWake } from "@/components/layout/ServerWake";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-screen overflow-x-hidden antialiased">
         <ClayDefs />
         <AuthProvider>{children}</AuthProvider>
+        <ServerWake />
       </body>
     </html>
   );

@@ -31,8 +31,11 @@ async def upload_photo(db: DB, user: CurrentUser, file: UploadFile = File(...)) 
         jpeg, width, height = await run_in_threadpool(photo_service.process_upload, raw)
     except photo_service.PhotoError as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
-    filename = await run_in_threadpool(photo_service.save, jpeg)
-    photo = Photo(owner_id=user.id, filename=filename, width=width, height=height)
+    try:
+        filename, external_url = await run_in_threadpool(photo_service.save, jpeg)
+    except photo_service.PhotoError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+    photo = Photo(owner_id=user.id, filename=filename, external_url=external_url, width=width, height=height)
     db.add(photo)
     db.commit()
     db.refresh(photo)
@@ -44,7 +47,7 @@ def delete_photo(photo_id: int, db: DB, user: CurrentUser) -> None:
     photo = db.get(Photo, photo_id)
     if photo is None or photo.owner_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found.")
-    photo_service.delete(photo.filename)
+    photo_service.delete(photo.filename, photo.external_url)
     db.delete(photo)
     db.commit()
 
@@ -70,4 +73,4 @@ def analyze_photo(body: AnalyzeIn, db: DB, user: CurrentUser) -> VisionResult:
     photo = db.get(Photo, body.photo_id)
     if photo is None or photo.owner_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found.")
-    return analyze(photo_service.open_image(photo.filename), engine)
+    return analyze(photo_service.open_image(photo.filename, photo.external_url), engine)
