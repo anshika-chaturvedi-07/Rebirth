@@ -15,9 +15,11 @@ Every item gets three chances: **free** for people in need first, then a **low-p
 - 🙋 **Needs board.** Organisations post what they're missing; urgent needs are shown first.
 - ✨ **Smart matching.** Every item–need pair is scored on distance, fit, urgency, quantity, cost, time pressure and trust, with plain-language reasons ("1.2 km apart · Urgent need · Covers the whole need").
 - 🚚 **Volunteer route planning.** Google OR-Tools plans one route over several pickups and drop-offs, and food always goes straight to its drop-off.
+- 🌱 **Impact dashboard.** CO₂e avoided, kilograms reused, meals, water, where items found a home, and neighbourhood circularity scores.
+- 🔮 **Supply and demand forecasts.** Weekly forecasts per category with shortage/surplus alerts and an honest, out-of-sample accuracy check.
 - 🎨 **A colourful "clay world" design** with an original cast of animated cartoon characters drawn in code.
 
-**Coming next:** supply-and-demand forecasting, CO₂ and impact reports, UPI payments, and organisation verification (see the [roadmap](#roadmap)).
+**Coming next:** UPI payments, downloadable CSR impact reports, organisation verification and gamification (see the [roadmap](#roadmap)).
 
 > Personal project · built for India (₹, English + Hindi). Region settings are configuration, not code.
 
@@ -36,7 +38,8 @@ Every item gets three chances: **free** for people in need first, then a **low-p
 | Backend | FastAPI (Python), Pydantic, SQLAlchemy 2.0, Alembic |
 | Data | PostgreSQL (SQLite for local dev), Redis |
 | Maps | MapLibre GL with free OpenFreeMap vector tiles, repainted in the REBIRTH palette |
-| AI / data science | PyTorch + OpenCLIP zero-shot vision, explainable matching, Google OR-Tools routing (live); Prophet forecasting planned |
+| AI / data science | PyTorch + OpenCLIP zero-shot vision, explainable matching, Google OR-Tools routing, Holt-Winters / seasonal forecasting with backtests |
+| Charts | Recharts, palettes checked with a colour-blindness / contrast validator |
 | Infra | Docker, GitHub Actions, Vercel + Render + Supabase |
 
 ## Project structure
@@ -136,6 +139,33 @@ A listing's stage comes from two timestamps set when it is created (`priority_un
 - **Built-in places list** of Indian cities and Bengaluru localities, with aliases such as "Bangalore". No addresses are sent to a third-party geocoder.
 - **Privacy:** other users see a donor's location rounded to about 100 m. Only the donor and a requester whose request was accepted see the exact spot. Organisations' needs are shown exactly; individuals' needs are rounded.
 
+## Impact, forecasts and hotspots
+
+**Impact** (`backend/app/services/impact.py`, page `/impact`). Counted per completed handover:
+
+| Metric | How |
+|---|---|
+| Kilograms reused | quantity × the category's kg per unit |
+| CO₂e avoided | kg × an indicative per-category factor (e.g. clothing 15, electronics 40, food 2.5 kg CO₂e/kg) |
+| Water saved | kg × an indicative embodied-water factor |
+| Meals | food kg ÷ 0.42 kg per meal |
+| Equivalents | CO₂e ÷ 0.17 kg per car-km; ÷ 21 kg per tree-year |
+| Rehome rate | handed over ÷ (handed over + withdrawn) |
+| Circularity (0–100) | 70% rehome rate + 30% share that went free to people in need, per neighbourhood |
+
+**Forecasts** (`backend/app/services/forecasting.py`, page `/insights`). Weekly kilograms given (supply) and requested (demand) per category. Three candidate models, chosen per series by error on held-out weeks:
+- a linear trend plus a 52-week seasonal profile smoothed over neighbouring weeks (robust for sparse counts; trend and season are estimated alternately so neither biases the other);
+- additive Holt-Winters with grid-searched smoothing;
+- a damped trend (used when there's less than two years of history).
+
+**Accuracy is reported honestly.** The last 8 weeks are hidden, a model is chosen using only earlier weeks, and its error (WAPE) is compared with "same week last year". On the demo data the model wins in 10 of 12 series; the page shows where it loses. Alerts fire when forecast demand exceeds supply by 20% (shortage) or supply exceeds demand by 60% (surplus) over the next 8 weeks.
+
+**Hotspots** (map layer). Listings or needs from the last 6 months are grouped into ~1 km squares. Squares with fewer than 3 records are hidden so no single household can be picked out.
+
+**Demo data.** `python -m app.seed` adds three years of **simulated** Bengaluru activity with plausible seasons: winter clothing demand Nov–Jan, textbook supply after exams (Mar–Apr) and demand when schools reopen (May–Jun), food surplus around Diwali, and construction slowing in the monsoon. Use `--no-history` to skip it. The UI labels these figures as demo data.
+
+**Charts** follow a data-viz checklist: one axis per chart, thin marks, a legend for two or more series, a chart/table switch on every chart, and colours run through a palette validator (colour-blind separation and contrast). The app's pastel tints failed as data colours, so the charts use deeper steps of the same hues.
+
 ## Matching and volunteer routes
 
 **Matching** (`backend/app/services/matching.py`). Hard rules come first: same category, item still free or in the marketplace, need still open, and nobody is matched with themselves. Then a weighted score:
@@ -194,7 +224,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 - [x] **Phase 3:** interactive map, near-me search, locality autocomplete, location privacy
 - [x] **Phase 4:** photo uploads and AI photo identification (category, title, condition, safety checks)
 - [x] **Phase 5:** explainable matching, need-linked requests, volunteer deliveries and route optimisation
-- [ ] **Phase 6:** forecasting and circular-economy analytics
+- [x] **Phase 6:** impact and circularity analytics, supply and demand forecasting with backtests, hotspot heatmaps
 - [ ] **Phase 7:** marketplace and payments, impact reports, gamification, trust and safety
 - [ ] **Phase 8:** deployment and CI
 

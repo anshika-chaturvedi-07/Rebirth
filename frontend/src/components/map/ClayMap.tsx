@@ -58,6 +58,8 @@ interface ClayMapProps {
   fitRadius?: boolean;
   /** A route line as [lng, lat] points; the map frames it when it changes. */
   route?: [number, number][] | null;
+  /** Heatmap points (already aggregated); weight is relative intensity. */
+  heat?: { lat: number; lng: number; weight: number }[] | null;
   /** A draggable pin; fires onPinMove when dropped. */
   pin?: LatLng | null;
   onPinMove?: (p: LatLng) => void;
@@ -68,7 +70,7 @@ interface ClayMapProps {
 }
 
 export const ClayMap = forwardRef<ClayMapHandle, ClayMapProps>(function ClayMap(
-  { center, zoom = 12, markers = [], radiusKm, fitRadius = false, route, pin, onPinMove, onMoveEnd, className, interactive = true, label = "Map" },
+  { center, zoom = 12, markers = [], radiusKm, fitRadius = false, route, heat, pin, onPinMove, onMoveEnd, className, interactive = true, label = "Map" },
   ref,
 ) {
   const container = useRef<HTMLDivElement>(null);
@@ -117,6 +119,19 @@ export const ClayMap = forwardRef<ClayMapHandle, ClayMapProps>(function ClayMap(
         map.addSource("radius", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({ id: "radius-fill", type: "fill", source: "radius", paint: { "fill-color": "#B39DF5", "fill-opacity": 0.12 } });
         map.addLayer({ id: "radius-line", type: "line", source: "radius", paint: { "line-color": "#8C6BEA", "line-width": 2, "line-dasharray": [2, 2] } });
+        map.addSource("heat", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: "heat", type: "heatmap", source: "heat",
+          paint: {
+            "heatmap-weight": ["get", "weight"],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.8, 14, 2],
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 9, 18, 14, 48],
+            "heatmap-opacity": 0.75,
+            // one hue, light -> dark (sequential); transparent at zero so the map shows through
+            "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
+              0, "rgba(123,91,224,0)", 0.2, "#D9CDF8", 0.45, "#B39DF5", 0.7, "#8C6BEA", 1, "#4B2FA8"],
+          },
+        });
         map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({ id: "route-casing", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#FFFFFF", "line-width": 9 } });
         map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#8C6BEA", "line-width": 5 } });
@@ -161,6 +176,17 @@ export const ClayMap = forwardRef<ClayMapHandle, ClayMapProps>(function ClayMap(
       map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 24, duration: 600 });
     }
   }, [center, radiusKm, ready, fitRadius]);
+
+  // heatmap
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const src = map.getSource("heat") as import("maplibre-gl").GeoJSONSource | undefined;
+    src?.setData({
+      type: "FeatureCollection",
+      features: (heat ?? []).map((p) => ({ type: "Feature", properties: { weight: p.weight }, geometry: { type: "Point", coordinates: [p.lng, p.lat] } })),
+    });
+  }, [heat, ready]);
 
   // route line
   useEffect(() => {

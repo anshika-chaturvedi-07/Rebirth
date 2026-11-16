@@ -14,6 +14,7 @@ import { burstConfetti } from "@/lib/confetti";
 import { formatQty, ROLE_LABEL, timeAgo, URGENCY } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import type { Listing, MyClaim, Need, Role, Suggestions as SuggestionsData, User } from "@/lib/types";
+import type { MyImpact } from "@/lib/analyticsTypes";
 import { MatchScore, ReasonChips } from "@/components/matching/MatchScore";
 
 const ROLE_CHARACTER: Record<Role, CharacterId> = {
@@ -41,6 +42,28 @@ function Section({ title, action, children }: { title: string; action?: React.Re
       </div>
       {children}
     </section>
+  );
+}
+
+function MyImpactStrip() {
+  const { data } = useApi<MyImpact>("/api/impact/me");
+  if (!data) return null;
+  const t = [data.given.total, data.received.total, data.delivered.total];
+  const kgSum = t.reduce((s, x) => s + x.kg, 0);
+  const co2 = t.reduce((s, x) => s + x.co2e_kg, 0);
+  const n = t.reduce((s, x) => s + x.handovers, 0);
+  if (!n) return null;
+  return (
+    <Link href="/impact" className="clay mt-8 flex flex-wrap items-center gap-4 rounded-[2rem] bg-lime-t p-5 hover:-translate-y-0.5 transition-transform">
+      <span className="text-4xl" aria-hidden="true">🌱</span>
+      <span className="min-w-0 flex-1">
+        <b className="block text-xl">Your impact so far</b>
+        <span className="font-semibold text-plum-soft">
+          {kgSum >= 1000 ? `${(kgSum / 1000).toFixed(1)} t` : `${Math.round(kgSum)} kg`} given a second life · {Math.round(co2).toLocaleString("en-IN")} kg CO₂e avoided · {n} handover{n === 1 ? "" : "s"}
+        </span>
+      </span>
+      <span className="font-bold text-violet">See the city&apos;s impact →</span>
+    </Link>
   );
 }
 
@@ -217,6 +240,7 @@ function Dashboard({ user }: { user: User }) {
       )}
 
       <Suggestions user={user} />
+      <MyImpactStrip />
 
       {canList && (
         <Section title="My listings" action={<Link href="/listings/new" className="font-bold text-violet hover:underline">+ New listing</Link>}>

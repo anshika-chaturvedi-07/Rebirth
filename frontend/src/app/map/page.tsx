@@ -14,9 +14,11 @@ import { api } from "@/lib/api";
 import { formatQty, URGENCY } from "@/lib/format";
 import { formatDistance, useUserLocation, type LatLng } from "@/lib/geo";
 import type { Listing, Need, Stage } from "@/lib/types";
+import type { HotspotCell } from "@/lib/analyticsTypes";
 
 const RADII = [2, 5, 10, 25];
 type Layer = "items" | "needs";
+type Heat = "off" | "supply" | "demand";
 
 export default function MapPage() {
   const { user, loading: authLoading } = useAuth();
@@ -26,6 +28,20 @@ export default function MapPage() {
   const [radius, setRadius] = useState(5);
   const [layers, setLayers] = useState<Record<Layer, boolean>>({ items: true, needs: true });
   const [stage, setStage] = useState<Stage | "all">("all");
+  const [heatKind, setHeatKind] = useState<Heat>("off");
+  const [heatCells, setHeatCells] = useState<HotspotCell[]>([]);
+
+  useEffect(() => {
+    if (heatKind === "off") return;
+    api<{ cells: HotspotCell[] }>(`/api/insights/hotspots?kind=${heatKind}&days=180`)
+      .then((r) => setHeatCells(r.cells))
+      .catch(() => setHeatCells([]));
+  }, [heatKind]);
+  const heat = useMemo(() => {
+    if (heatKind === "off" || !heatCells.length) return null;
+    const max = Math.max(...heatCells.map((c) => c.count));
+    return heatCells.map((c) => ({ lat: c.lat, lng: c.lng, weight: c.count / max }));
+  }, [heatKind, heatCells]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [needs, setNeeds] = useState<Need[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -128,12 +144,26 @@ export default function MapPage() {
           <option value="marketplace">Marketplace</option>
           <option value="recycle">Repair &amp; recycle</option>
         </select>
+        <select value={heatKind} onChange={(e) => setHeatKind(e.target.value as Heat)} aria-label="Hotspot layer"
+          className="clay-sm cursor-pointer rounded-full bg-card px-4 py-2 text-sm font-bold">
+          <option value="off">No hotspots</option>
+          <option value="supply">🔥 Where surplus comes from</option>
+          <option value="demand">🔥 Where needs come from</option>
+        </select>
         <span className="text-sm font-bold text-plum-soft" role="status">
           {loading ? "Looking around…" : `${listings.length} items · ${needs.length} needs within ${radius} km`}
         </span>
       </div>
 
       {locError && <p className="mb-3 rounded-2xl bg-butter-t px-4 py-2.5 text-sm font-bold">{locError}</p>}
+      {heatKind !== "off" && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold text-plum-soft">
+          <span>Fewer</span>
+          <span className="h-2.5 w-28 rounded-full" style={{ background: "linear-gradient(90deg,#D9CDF8,#B39DF5,#8C6BEA,#4B2FA8)" }} aria-hidden="true" />
+          <span>More</span>
+          <span>· last 6 months, grouped into ~1 km squares. Squares with fewer than 3 records are hidden for privacy.</span>
+        </p>
+      )}
       {error && <div className="mb-3"><ErrorNote>{error}</ErrorNote></div>}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
@@ -146,6 +176,7 @@ export default function MapPage() {
               markers={markers}
               radiusKm={radius}
               fitRadius
+              heat={heat}
               onMoveEnd={(c) => setPendingCenter(c)}
               className="h-full w-full"
               label="Map of items and needs nearby"

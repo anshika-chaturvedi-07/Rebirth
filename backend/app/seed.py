@@ -17,6 +17,7 @@ from app.db.session import SessionLocal, utcnow
 from app.models import Claim, ClaimStatus, DeliveryTask, Listing, ListingStatus, Need, Photo, User
 from app.services import deliveries
 from app.services import photos as photo_service
+from app.seed_history import generate as generate_history
 from app.services.lifecycle import lifecycle_windows, suggest_price
 
 DEMO_PASSWORD = "rebirth-demo"
@@ -78,7 +79,7 @@ NEEDS = [
 ]
 
 
-def run(reset: bool = False) -> None:
+def run(reset: bool = False, history: bool = True) -> None:
     db = SessionLocal()
     try:
         if reset:
@@ -131,7 +132,10 @@ def run(reset: bool = False) -> None:
             db.add(claim)
             db.flush()
             deliveries.create_for_claim(db, claim)
+        hist = generate_history(db, users) if history else None
         db.commit()
+        if hist:
+            print(f"Simulated history: {hist['listings']} listings, {hist['handovers']} handovers, {hist['needs']} needs over 3 years.")
         print(f"Seeded {len(USERS)} accounts, {len(LISTINGS)} listings, {len(NEEDS)} needs, {len(DELIVERIES)} deliveries. "
               f"Password for all: {DEMO_PASSWORD}")
     finally:
@@ -139,4 +143,4 @@ def run(reset: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    run(reset="--reset" in sys.argv)
+    run(reset="--reset" in sys.argv, history="--no-history" not in sys.argv)

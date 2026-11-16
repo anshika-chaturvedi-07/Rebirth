@@ -11,7 +11,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 const LINKS = [
   { href: "/listings", label: "Explore" },
   { href: "/needs", label: "Needs board" },
-  { href: "/#journey", label: "How it works" },
+  { href: "/impact", label: "Impact" },
   { href: "/map", label: "Map" },
 ];
 

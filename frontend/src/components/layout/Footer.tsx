@@ -8,6 +8,7 @@ export function Footer() {
       </span>
       <nav className="flex gap-4" aria-label="Footer">
         <Link href="/#journey" className="hover:text-plum">How it works</Link>
+        <Link href="/insights" className="hover:text-plum">Forecasts</Link>
         <Link href="/login" className="hover:text-plum">Sign in</Link>
         <Link href="/signup" className="hover:text-plum">Join free</Link>
       </nav>
