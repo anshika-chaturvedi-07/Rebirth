@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, listings, meta, needs, photos
+from app.api.routes import auth, deliveries, listings, matches, meta, needs, photos
 from app.services.photos import media_root
 from app.vision.analyzer import warm_up
 from app.vision.engine import get_engine
@@ -25,7 +25,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title=settings.app_name,
-    version="0.2.0",
+    version="0.5.0",
     description="REBIRTH — a world where everything gets a second chance.",
 )
 
@@ -42,6 +42,8 @@ app.include_router(auth.router)
 app.include_router(listings.router)
 app.include_router(needs.router)
 app.include_router(photos.router)
+app.include_router(matches.router)
+app.include_router(deliveries.router)
 
 # Uploaded photos (already re-encoded and stripped of metadata). Use a CDN/object storage in production.
 app.mount("/media", StaticFiles(directory=media_root()), name="media")

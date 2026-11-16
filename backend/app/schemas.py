@@ -123,6 +123,7 @@ class ListingOut(BaseModel):
     is_owner: bool = False
     my_claim_id: int | None = None
     my_claim_status: str | None = None
+    my_delivery_status: str | None = None
     can_claim: bool = False
     claim_blocked_reason: str | None = None
 
@@ -135,6 +136,8 @@ class ListingPage(BaseModel):
 # ---------- claims ----------
 class ClaimIn(BaseModel):
     message: str = Field(default="", max_length=500)
+    need_id: int | None = None  # the posted need this item is for (NGOs / individuals)
+    wants_delivery: bool = False  # ask a volunteer to bring it
 
 
 class ClaimOut(BaseModel):
@@ -146,6 +149,9 @@ class ClaimOut(BaseModel):
     status: str
     created_at: UTCDateTime
     claimant: UserBrief
+    need_id: int | None = None
+    wants_delivery: bool = False
+    delivery_status: str | None = None
 
 
 class MyClaimOut(ClaimOut):

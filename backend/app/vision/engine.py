@@ -55,7 +55,12 @@ class ClipEngine:
             self._loaded = True
             log.info("Loaded %s in %.1fs", self.name, time.perf_counter() - started)
 
+    def _encode_uncached(self, texts: list[str]):
+        feats = self._model.encode_text(self._tokenizer(texts))
+        return feats / feats.norm(dim=-1, keepdim=True)
+
     def _text_features(self, prompts: list[str]):
+        """Embeddings for the fixed label prompts, cached for the life of the process."""
         torch = self._torch
         missing = [p for p in prompts if p not in self._text_cache]
         if missing:
@@ -66,10 +71,21 @@ class ClipEngine:
                 self._text_cache[p] = f
         return torch.stack([self._text_cache[p] for p in prompts])
 
+    def text_similarity(self, query: str, candidates: list[str]) -> list[float]:
+        """Cosine similarity between CLIP text embeddings, rescaled to roughly 0..1 (used for matching)."""
+        self.load()
+        with self._lock, self._torch.inference_mode():
+            # user text is not cached: it is unbounded and would grow memory forever
+            feats = self._encode_uncached([f"a photo of {query}"] + [f"a photo of {c}" for c in candidates])
+            cos = (feats[1:] @ feats[0]).tolist()
+        # CLIP text-text cosines mostly fall between ~0.7 (unrelated) and 1.0 (same thing)
+        return [max(0.0, min(1.0, (c - 0.72) / 0.23)) for c in cos]
+
     def zero_shot(self, image: Image.Image, prompts: list[str]) -> list[float]:
         self.load()
         torch = self._torch
-        with self._lock:  # the model isn't re-entrant; requests are short
+        # inference_mode is per-thread, so set it here (requests run on worker threads), not only at load time
+        with self._lock, torch.inference_mode():  # the model isn't re-entrant; requests are short
             img = self._preprocess(image).unsqueeze(0)
             img_feat = self._model.encode_image(img)
             img_feat = img_feat / img_feat.norm(dim=-1, keepdim=True)

@@ -80,6 +80,32 @@ export function needMarker(n: Need): MapMarker | null {
   };
 }
 
+export function stopMarker(
+  n: number,
+  stop: { task_id: number; kind: "pickup" | "dropoff"; lat: number; lng: number; label: string; item: string; leg_km: number },
+): MapMarker {
+  return {
+    id: `stop-${n}-${stop.task_id}-${stop.kind}`, // new id when a re-plan changes the stop, so the pin is redrawn
+    lat: stop.lat,
+    lng: stop.lng,
+    element: () => {
+      const pin = el("div", `rb-stop ${stop.kind === "pickup" ? "rb-stop-pickup" : "rb-stop-drop"}`, String(n));
+      pin.setAttribute("role", "button");
+      pin.setAttribute("aria-label", `Stop ${n}: ${stop.kind === "pickup" ? "pick up" : "drop off"} ${stop.item}`);
+      return pin;
+    },
+    popup: () => {
+      const root = el("div", "grid gap-1");
+      root.append(el("span", `w-fit rounded-full px-2 py-0.5 text-[11px] font-extrabold ${stop.kind === "pickup" ? "bg-lime" : "bg-coral text-white"}`,
+        `Stop ${n} · ${stop.kind === "pickup" ? "Pick up" : "Drop off"}`));
+      root.append(el("b", "font-display text-base leading-tight", stop.item));
+      root.append(el("span", "text-xs font-bold text-plum-soft", stop.label));
+      root.append(el("span", "text-xs font-bold text-plum-soft", `${stop.leg_km.toFixed(1)} km from the previous stop`));
+      return root;
+    },
+  };
+}
+
 export function meMarker(p: { lat: number; lng: number }): MapMarker {
   return {
     id: "me",

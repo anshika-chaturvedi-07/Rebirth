@@ -54,6 +54,14 @@ class ClaimStatus(StrEnum):
     cancelled = "cancelled"
 
 
+class DeliveryStatus(StrEnum):
+    open = "open"            # waiting for a volunteer
+    assigned = "assigned"    # a volunteer took it
+    picked_up = "picked_up"
+    delivered = "delivered"
+    cancelled = "cancelled"
+
+
 class NeedStatus(StrEnum):
     open = "open"
     fulfilled = "fulfilled"
@@ -114,12 +122,20 @@ class Claim(Base):
     claimant_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     stage: Mapped[str] = mapped_column(String(20))  # stage when claimed: free / marketplace / recycle
     message: Mapped[str] = mapped_column(Text, default="")
+    need_id: Mapped[int | None] = mapped_column(ForeignKey("needs.id"), nullable=True, index=True)  # which need it's for
+    wants_delivery: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(20), default=ClaimStatus.pending, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     listing: Mapped[Listing] = relationship(back_populates="claims")
     claimant: Mapped[User] = relationship()
+    need: Mapped["Need | None"] = relationship()
+    delivery: Mapped["DeliveryTask | None"] = relationship(back_populates="claim", uselist=False)
+
+    @property
+    def delivery_status(self) -> str | None:
+        return self.delivery.status if self.delivery is not None else None
 
 
 class Need(Base):
@@ -164,3 +180,27 @@ class Photo(Base):
     @property
     def url(self) -> str:
         return f"/media/{self.filename}"
+
+
+class DeliveryTask(Base):
+    """A pickup-and-drop-off job for volunteers, created when a donor accepts a request that asked for delivery."""
+
+    __tablename__ = "delivery_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    claim_id: Mapped[int] = mapped_column(ForeignKey("claims.id"), unique=True)
+    volunteer_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default=DeliveryStatus.open, index=True)
+    pickup_lat: Mapped[float] = mapped_column(Float)
+    pickup_lng: Mapped[float] = mapped_column(Float)
+    pickup_label: Mapped[str] = mapped_column(String(160))
+    dropoff_lat: Mapped[float] = mapped_column(Float)
+    dropoff_lng: Mapped[float] = mapped_column(Float)
+    dropoff_label: Mapped[str] = mapped_column(String(160))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    picked_up_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    claim: Mapped[Claim] = relationship(back_populates="delivery")
+    volunteer: Mapped[User | None] = relationship()

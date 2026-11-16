@@ -19,6 +19,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const { user, loading, logout } = useAuth();
   const router = useRouter();
+  const links = user?.role === "volunteer" ? [...LINKS, { href: "/volunteer", label: "Deliveries" }] : LINKS;
 
   async function signOut() {
     await logout();
@@ -30,7 +31,7 @@ export function Navbar() {
     <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
       <Logo />
       <nav aria-label="Main" className="clay-sm hidden gap-1 rounded-full bg-card p-1.5 lg:flex">
-        {LINKS.map((l) => (
+        {links.map((l) => (
           <Link key={l.href} href={l.href} className="rounded-full px-4 py-2 text-[0.95rem] font-bold text-plum hover:bg-lavender-t">
             {l.label}
           </Link>
@@ -65,7 +66,7 @@ export function Navbar() {
       </div>
       {open && (
         <nav aria-label="Mobile" className="clay absolute inset-x-4 top-full grid gap-1 rounded-3xl bg-card p-3 lg:hidden">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-2xl px-4 py-3 font-bold hover:bg-lavender-t">
               {l.label}
             </Link>

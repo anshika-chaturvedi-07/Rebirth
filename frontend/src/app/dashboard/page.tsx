@@ -13,7 +13,8 @@ import { EmptyState, ErrorNote, LoadingState } from "@/components/ui/EmptyState"
 import { burstConfetti } from "@/lib/confetti";
 import { formatQty, ROLE_LABEL, timeAgo, URGENCY } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
-import type { Listing, MyClaim, Need, Role, User } from "@/lib/types";
+import type { Listing, MyClaim, Need, Role, Suggestions as SuggestionsData, User } from "@/lib/types";
+import { MatchScore, ReasonChips } from "@/components/matching/MatchScore";
 
 const ROLE_CHARACTER: Record<Role, CharacterId> = {
   donor: "meera", business: "dadi", organisation: "fatima", individual: "aarav",
@@ -40,6 +41,60 @@ function Section({ title, action, children }: { title: string; action?: React.Re
       </div>
       {children}
     </section>
+  );
+}
+
+function Suggestions({ user }: { user: User }) {
+  const { data, loading } = useApi<SuggestionsData>("/api/me/suggestions");
+  if (loading || !data) return null;
+  const items = data.for_my_needs;
+  const needs = data.for_my_items;
+  if (!items.length && !needs.length) return null;
+  return (
+    <Section title="✨ Suggested for you">
+      <p className="-mt-2 mb-3 text-sm font-semibold text-plum-soft">
+        Matched on distance, how well it fits, urgency, quantity and whether it&apos;s free. Hover a score to see the breakdown.
+      </p>
+      <ul className="grid gap-3 md:grid-cols-2">
+        {items.map((m) => (
+          <li key={`l-${m.listing.id}`} className="clay-sm rounded-3xl bg-card p-4">
+            <div className="flex items-start gap-3">
+              <span className={`grid h-12 w-12 flex-none place-items-center overflow-hidden rounded-2xl text-2xl ${tileFor(m.listing.category).tint}`} aria-hidden="true">
+                {m.listing.photos[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- user uploads served by the API
+                  <img src={m.listing.photos[0]} alt="" className="h-full w-full object-cover" />
+                ) : tileFor(m.listing.category).icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <Link href={`/listings/${m.listing.id}`} className="block truncate font-bold hover:underline">{m.listing.title}</Link>
+                <small className="font-bold text-plum-soft">by {m.listing.donor.name}</small>
+              </div>
+              <MatchScore score={m.score} components={m.components} />
+            </div>
+            <div className="mt-2.5"><ReasonChips reasons={m.reasons} /></div>
+          </li>
+        ))}
+        {needs.map((m) => (
+          <li key={`n-${m.need.id}-${m.listing_id}`} className="clay-sm rounded-3xl bg-card p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-coral-t text-2xl" aria-hidden="true">🙋</span>
+              <div className="min-w-0 flex-1">
+                <b className="block truncate">{m.need.title}</b>
+                <small className="font-bold text-plum-soft">
+                  {m.need.requester.name} could use your{" "}
+                  <Link href={`/listings/${m.listing_id}`} className="text-violet hover:underline">{m.listing_title}</Link>
+                </small>
+              </div>
+              <MatchScore score={m.score} components={m.components} />
+            </div>
+            <div className="mt-2.5"><ReasonChips reasons={m.reasons} /></div>
+          </li>
+        ))}
+      </ul>
+      {user.role !== "organisation" && user.role !== "individual" && needs.length > 0 && (
+        <p className="mt-2 text-xs font-semibold text-plum-soft">They&apos;ll see your item in their suggestions and can request it.</p>
+      )}
+    </Section>
   );
 }
 
@@ -154,11 +209,14 @@ function Dashboard({ user }: { user: User }) {
         <div className="clay mt-8 flex flex-wrap items-center gap-4 rounded-[2rem] bg-butter-t p-5">
           <span className="text-4xl" aria-hidden="true">🗺️</span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-bold">Pickup routes are on the way</h2>
-            <p className="text-plum-soft">Soon you&apos;ll get optimised pickup and delivery routes here. Meanwhile, explore what&apos;s being shared near you.</p>
+            <h2 className="text-xl font-bold">Deliveries near you</h2>
+            <p className="text-plum-soft">See items waiting for a ride and get one optimised route for several pickups and drop-offs.</p>
           </div>
+          <ButtonLink href="/volunteer" variant="coral" size="sm">🚚 Plan my route</ButtonLink>
         </div>
       )}
+
+      <Suggestions user={user} />
 
       {canList && (
         <Section title="My listings" action={<Link href="/listings/new" className="font-bold text-violet hover:underline">+ New listing</Link>}>

@@ -14,7 +14,8 @@ from app.core.security import hash_password
 from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.db.session import SessionLocal, utcnow
-from app.models import Claim, Listing, Need, Photo, User
+from app.models import Claim, ClaimStatus, DeliveryTask, Listing, ListingStatus, Need, Photo, User
+from app.services import deliveries
 from app.services import photos as photo_service
 from app.services.lifecycle import lifecycle_windows, suggest_price
 
@@ -33,6 +34,12 @@ USERS = [
 ]
 
 AREAS = places.LOCALITIES["Bengaluru"]
+
+# Accepted requests that asked for volunteer delivery: (claimant, listing title, need title)
+DELIVERIES = [
+    ("hope", "Surplus veg biryani trays", "Dinner for 120 residents"),
+    ("fatima", "Ergonomic office chairs", "Chairs for two new classrooms"),
+]
 
 # donor, title, category, subcategory, qty, condition, area, original price, hours ago, best-before hours from now, description
 LISTINGS = [
@@ -77,7 +84,7 @@ def run(reset: bool = False) -> None:
         if reset:
             for photo in db.scalars(select(Photo)).all():
                 photo_service.delete(photo.filename)
-            for model in (Claim, Photo, Need, Listing, User):
+            for model in (DeliveryTask, Claim, Photo, Need, Listing, User):
                 db.execute(delete(model))
             db.commit()
         if db.scalar(select(User.id).limit(1)):
@@ -92,26 +99,41 @@ def run(reset: bool = False) -> None:
         db.flush()
 
         now = utcnow()
+        listings: dict[str, Listing] = {}
         for donor, title, cat, sub, qty, cond, area, price, hours_ago, bb_hours, desc in LISTINGS:
             created = now - timedelta(hours=hours_ago)
             best_before = now + timedelta(hours=bb_hours) if bb_hours is not None else None
             priority_until, marketplace_until = lifecycle_windows(cat, created, best_before)
             lat, lng = AREAS[area]
-            db.add(Listing(
-                donor_id=users[donor].id, title=title, description=desc, category=cat, subcategory=sub, quantity=qty,
+            listings[title] = Listing(
+                donor=users[donor], title=title, description=desc, category=cat, subcategory=sub, quantity=qty,
                 unit=CATEGORY_BY_SLUG[cat].unit, condition=cond, city="Bengaluru", area=area, lat=lat, lng=lng,
                 original_price_inr=price, price_inr=suggest_price(price, cond),
                 priority_until=priority_until, marketplace_until=marketplace_until, created_at=created,
-            ))
+            )
+            db.add(listings[title])
 
+        needs: dict[str, Need] = {}
         for who, title, cat, qty, urgency, area, desc in NEEDS:
             lat, lng = AREAS[area]
-            db.add(Need(
-                requester_id=users[who].id, title=title, description=desc, category=cat, quantity=qty,
+            needs[title] = Need(
+                requester=users[who], title=title, description=desc, category=cat, quantity=qty,
                 unit=CATEGORY_BY_SLUG[cat].unit, urgency=urgency, city="Bengaluru", area=area, lat=lat, lng=lng,
-            ))
+            )
+            db.add(needs[title])
+        db.flush()
+
+        for who, listing_title, need_title in DELIVERIES:
+            listing = listings[listing_title]
+            claim = Claim(listing=listing, claimant=users[who], need=needs[need_title], stage="free",
+                          status=ClaimStatus.accepted, wants_delivery=True, message="Could a volunteer bring it, please?")
+            listing.status = ListingStatus.reserved
+            db.add(claim)
+            db.flush()
+            deliveries.create_for_claim(db, claim)
         db.commit()
-        print(f"Seeded {len(USERS)} accounts, {len(LISTINGS)} listings, {len(NEEDS)} needs. Password for all: {DEMO_PASSWORD}")
+        print(f"Seeded {len(USERS)} accounts, {len(LISTINGS)} listings, {len(NEEDS)} needs, {len(DELIVERIES)} deliveries. "
+              f"Password for all: {DEMO_PASSWORD}")
     finally:
         db.close()
 

@@ -56,6 +56,8 @@ interface ClayMapProps {
   radiusKm?: number | null;
   /** Zoom so the whole radius circle is visible whenever it changes. */
   fitRadius?: boolean;
+  /** A route line as [lng, lat] points; the map frames it when it changes. */
+  route?: [number, number][] | null;
   /** A draggable pin; fires onPinMove when dropped. */
   pin?: LatLng | null;
   onPinMove?: (p: LatLng) => void;
@@ -66,7 +68,7 @@ interface ClayMapProps {
 }
 
 export const ClayMap = forwardRef<ClayMapHandle, ClayMapProps>(function ClayMap(
-  { center, zoom = 12, markers = [], radiusKm, fitRadius = false, pin, onPinMove, onMoveEnd, className, interactive = true, label = "Map" },
+  { center, zoom = 12, markers = [], radiusKm, fitRadius = false, route, pin, onPinMove, onMoveEnd, className, interactive = true, label = "Map" },
   ref,
 ) {
   const container = useRef<HTMLDivElement>(null);
@@ -115,6 +117,9 @@ export const ClayMap = forwardRef<ClayMapHandle, ClayMapProps>(function ClayMap(
         map.addSource("radius", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({ id: "radius-fill", type: "fill", source: "radius", paint: { "fill-color": "#B39DF5", "fill-opacity": 0.12 } });
         map.addLayer({ id: "radius-line", type: "line", source: "radius", paint: { "line-color": "#8C6BEA", "line-width": 2, "line-dasharray": [2, 2] } });
+        map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({ id: "route-casing", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#FFFFFF", "line-width": 9 } });
+        map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#8C6BEA", "line-width": 5 } });
         setReady(true);
       });
       mapRef.current = map;
@@ -156,6 +161,22 @@ export const ClayMap = forwardRef<ClayMapHandle, ClayMapProps>(function ClayMap(
       map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 24, duration: 600 });
     }
   }, [center, radiusKm, ready, fitRadius]);
+
+  // route line
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const src = map.getSource("route") as import("maplibre-gl").GeoJSONSource | undefined;
+    src?.setData({
+      type: "FeatureCollection",
+      features: route && route.length > 1 ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: route } }] : [],
+    });
+    if (route && route.length > 1) {
+      const lngs = route.map((p) => p[0]);
+      const lats = route.map((p) => p[1]);
+      map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 50, duration: 700 });
+    }
+  }, [route, ready]);
 
   // markers
   useEffect(() => {

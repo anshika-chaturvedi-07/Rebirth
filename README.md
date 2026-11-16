@@ -13,9 +13,11 @@ Every item gets three chances: **free** for people in need first, then a **low-p
 - 🔄 **The three-chance lifecycle.** Time-based stages by category (food 2 hours, furniture 5 days, electronics 7 days); requests, accept, and handover confirmation.
 - 👥 **Six roles.** Donors, NGOs and schools, individuals, volunteers, businesses and recyclers, each with its own permissions.
 - 🙋 **Needs board.** Organisations post what they're missing; urgent needs are shown first.
+- ✨ **Smart matching.** Every item–need pair is scored on distance, fit, urgency, quantity, cost, time pressure and trust, with plain-language reasons ("1.2 km apart · Urgent need · Covers the whole need").
+- 🚚 **Volunteer route planning.** Google OR-Tools plans one route over several pickups and drop-offs, and food always goes straight to its drop-off.
 - 🎨 **A colourful "clay world" design** with an original cast of animated cartoon characters drawn in code.
 
-**Coming next:** smart matching between items and needs, optimised volunteer pickup routes, supply-and-demand forecasting, CO₂ and impact reports, UPI payments, and organisation verification (see the [roadmap](#roadmap)).
+**Coming next:** supply-and-demand forecasting, CO₂ and impact reports, UPI payments, and organisation verification (see the [roadmap](#roadmap)).
 
 > Personal project · built for India (₹, English + Hindi). Region settings are configuration, not code.
 
@@ -34,7 +36,7 @@ Every item gets three chances: **free** for people in need first, then a **low-p
 | Backend | FastAPI (Python), Pydantic, SQLAlchemy 2.0, Alembic |
 | Data | PostgreSQL (SQLite for local dev), Redis |
 | Maps | MapLibre GL with free OpenFreeMap vector tiles, repainted in the REBIRTH palette |
-| AI / data science | PyTorch + OpenCLIP zero-shot vision (live); LightGBM (matching), Prophet (forecasting), OR-Tools (routing) planned |
+| AI / data science | PyTorch + OpenCLIP zero-shot vision, explainable matching, Google OR-Tools routing (live); Prophet forecasting planned |
 | Infra | Docker, GitHub Actions, Vercel + Render + Supabase |
 
 ## Project structure
@@ -134,6 +136,31 @@ A listing's stage comes from two timestamps set when it is created (`priority_un
 - **Built-in places list** of Indian cities and Bengaluru localities, with aliases such as "Bangalore". No addresses are sent to a third-party geocoder.
 - **Privacy:** other users see a donor's location rounded to about 100 m. Only the donor and a requester whose request was accepted see the exact spot. Organisations' needs are shown exactly; individuals' needs are rounded.
 
+## Matching and volunteer routes
+
+**Matching** (`backend/app/services/matching.py`). Hard rules come first: same category, item still free or in the marketplace, need still open, and nobody is matched with themselves. Then a weighted score:
+
+| Factor | Weight | Signal |
+|---|---|---|
+| Distance | 0.25 | `exp(−km / 5)` between item and need |
+| Relevance | 0.20 | Shared words in titles (with light stemming); upgraded with CLIP text-embedding similarity when the AI model is warm |
+| Urgency | 0.15 | The need's urgency (1–3) |
+| Coverage | 0.15 | Share of the requested quantity this item covers |
+| Cost | 0.10 | Free items beat marketplace items for people in need |
+| Time pressure | 0.10 | Items leaving the free window or expiring soon go first |
+| Trust | 0.05 | Verified organisation |
+
+Every factor also produces a reason that's shown to users, and hovering a score shows the breakdown. The weights are hand-set; the factors are logged features, so a learned ranker can replace them once there's real accept/decline data.
+
+**Deliveries.** An NGO can link a request to one of its needs and ask for a volunteer. When the donor accepts, a delivery task is created: pickup at the donor's exact spot, drop-off at the need's location. Volunteers see open tasks with rounded locations and get exact addresses only after taking them.
+
+**Route optimisation** (`backend/app/services/routing.py`). This is a pickup-and-delivery problem: an open route from the volunteer's position, every pickup before its drop-off, and **perishable food dropped off right after it's picked up**. Three solvers:
+- **Exact search** for up to 4 deliveries (the true optimum).
+- **Google OR-Tools** with pickup–delivery constraints and guided local search.
+- A **cheapest-insertion + local-search heuristic** as a fallback.
+
+The API returns the shortest valid result. Tests compare the solvers with brute-force optimal routes. Distances are straight-line × 1.35 for city roads at about 18 km/h; a road-routing engine (OSRM) can replace this later.
+
 ## AI photo recognition
 
 Snap a photo when listing an item and REBIRTH suggests the **category, type, title and condition**.
@@ -166,7 +193,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 - [x] **Phase 2:** accounts and roles (JWT cookie sessions), listings, requests and needs, database + migrations
 - [x] **Phase 3:** interactive map, near-me search, locality autocomplete, location privacy
 - [x] **Phase 4:** photo uploads and AI photo identification (category, title, condition, safety checks)
-- [ ] **Phase 5:** matching engine and volunteer route optimisation
+- [x] **Phase 5:** explainable matching, need-linked requests, volunteer deliveries and route optimisation
 - [ ] **Phase 6:** forecasting and circular-economy analytics
 - [ ] **Phase 7:** marketplace and payments, impact reports, gamification, trust and safety
 - [ ] **Phase 8:** deployment and CI

@@ -10,7 +10,8 @@ from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.services.geo import bounding_box, haversine_km, public_coord
 from app.db.session import utcnow
-from app.models import Claim, ClaimStatus, Listing, ListingStatus, Photo, Role, Stage, User
+from app.models import Claim, ClaimStatus, Listing, ListingStatus, Need, NeedStatus, Photo, Role, Stage, User
+from app.services import deliveries
 from app.schemas import ClaimIn, ClaimOut, ListingIn, ListingOut, ListingPage, MyClaimOut, UserBrief
 from app.services.lifecycle import (
     LifecycleError,
@@ -77,6 +78,7 @@ def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime, di
         is_owner=bool(viewer and viewer.id == listing.donor_id),
         my_claim_id=mine.id if mine else None,
         my_claim_status=mine.status if mine else None,
+        my_delivery_status=mine.delivery_status if mine else None,
         can_claim=reason is None,
         claim_blocked_reason=reason,
     )
@@ -204,6 +206,7 @@ def withdraw_listing(listing_id: int, db: DB, user: CurrentUser) -> None:
     for c in listing.claims:
         if c.status in OPEN_CLAIM:
             c.status = ClaimStatus.declined
+            deliveries.cancel_for_claim(c)
     db.commit()
 
 
@@ -216,7 +219,16 @@ def create_claim(listing_id: int, body: ClaimIn, db: DB, user: CurrentUser) -> C
     reason = claim_block_reason(db, listing, user, stage, now)
     if reason:
         raise HTTPException(status.HTTP_409_CONFLICT, reason)
-    claim = Claim(listing_id=listing.id, claimant_id=user.id, stage=stage, message=body.message.strip())
+    if body.need_id is not None:
+        need = db.get(Need, body.need_id)
+        if need is None or need.requester_id != user.id or need.status != NeedStatus.open:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Choose one of your own open needs.")
+        if need.category != listing.category:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "That need is for a different kind of item.")
+    claim = Claim(
+        listing_id=listing.id, claimant_id=user.id, stage=stage, message=body.message.strip(),
+        need_id=body.need_id, wants_delivery=body.wants_delivery,
+    )
     db.add(claim)
     db.commit()
     db.refresh(claim)
@@ -251,7 +263,10 @@ def accept_claim(claim_id: int, db: DB, user: CurrentUser) -> Claim:
     for other in listing.claims:
         if other.id != claim.id and other.status == ClaimStatus.pending:
             other.status = ClaimStatus.declined
+    if claim.wants_delivery:
+        deliveries.create_for_claim(db, claim)  # volunteers can now pick it up
     db.commit()
+    db.refresh(claim)
     return claim
 
 
@@ -276,6 +291,7 @@ def cancel_claim(claim_id: int, db: DB, user: CurrentUser) -> Claim:
         raise HTTPException(status.HTTP_409_CONFLICT, "This request is already closed.")
     if claim.status == ClaimStatus.accepted:
         claim.listing.status = ListingStatus.active  # back on offer
+    deliveries.cancel_for_claim(claim)
     claim.status = ClaimStatus.cancelled
     db.commit()
     return claim
@@ -291,6 +307,7 @@ def complete_claim(claim_id: int, db: DB, user: CurrentUser) -> Claim:
         raise HTTPException(status.HTTP_409_CONFLICT, "Accept the request before confirming the handover.")
     claim.status = ClaimStatus.completed
     claim.listing.status = ListingStatus.completed
+    deliveries.cancel_for_claim(claim)  # handed over directly, so no volunteer trip is needed
     db.commit()
     return claim
 

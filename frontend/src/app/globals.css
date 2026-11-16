@@ -109,6 +109,17 @@ h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.05; text-wrap:
 .maplibregl-popup-content { border-radius: 20px !important; padding: 14px 16px !important; font-family: var(--font-sans); color: var(--color-plum); box-shadow: 0 16px 30px -12px rgb(61 44 90 / .35) !important; }
 .maplibregl-ctrl-group { border-radius: 14px !important; overflow: hidden; }
 
+/* numbered route stops */
+.rb-stop {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  font-family: var(--font-display); font-weight: 800; font-size: 16px; color: var(--color-plum);
+  border: 3px solid #fff; cursor: pointer; box-shadow: 0 8px 14px -6px rgb(61 44 90 / 0.5);
+  transition: transform .2s cubic-bezier(.3,1.6,.5,1);
+}
+.rb-stop:hover { transform: scale(1.15); }
+.rb-stop-pickup { background: var(--color-lime); }
+.rb-stop-drop { background: var(--color-coral); color: #fff; border-radius: 10px; }
+
 /* AI scan line over the cover photo */
 @keyframes scan { 0%, 100% { transform: translateY(-60px); } 50% { transform: translateY(60px); } }
 
