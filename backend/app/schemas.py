@@ -106,6 +106,8 @@ class ListingOut(BaseModel):
     area: str
     lat: float | None
     lng: float | None
+    location_exact: bool = False  # False: rounded to ~100 m for privacy
+    distance_km: float | None = None  # set when searching near a point
     price_inr: int | None
     status: str
     stage: StageLit
@@ -189,6 +191,8 @@ class NeedOut(BaseModel):
     area: str
     lat: float | None
     lng: float | None
+    location_exact: bool = False
+    distance_km: float | None = None
     needed_by: UTCDateTime | None
     status: str
     created_at: UTCDateTime

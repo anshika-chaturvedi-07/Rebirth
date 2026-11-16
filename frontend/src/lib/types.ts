@@ -43,6 +43,10 @@ export interface Listing {
   condition: Condition;
   city: string;
   area: string;
+  lat: number | null;
+  lng: number | null;
+  location_exact: boolean;
+  distance_km: number | null;
   price_inr: number | null;
   status: "active" | "reserved" | "completed" | "withdrawn";
   stage: Stage;
@@ -86,6 +90,10 @@ export interface Need {
   urgency: 1 | 2 | 3;
   city: string;
   area: string;
+  lat: number | null;
+  lng: number | null;
+  location_exact: boolean;
+  distance_km: number | null;
   needed_by: string | null;
   status: "open" | "fulfilled" | "closed";
   created_at: string;

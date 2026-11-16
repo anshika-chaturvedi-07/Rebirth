@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { CATEGORY_TILES } from "@/lib/categories";
 import { formatINR, formatQty, STAGE_META, timeLeft } from "@/lib/format";
+import { formatDistance } from "@/lib/geo";
 import type { Listing } from "@/lib/types";
 
 export const tileFor = (slug: string) => CATEGORY_TILES.find((c) => c.slug === slug) ?? CATEGORY_TILES[CATEGORY_TILES.length - 1];
 
 export function StageChip({ stage }: { stage: Listing["stage"] }) {
   const m = STAGE_META[stage];
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-extrabold ${m.chip}`}>{m.label}</span>;
+  return <span className={`flex-none whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold ${m.chip}`}>{m.label}</span>;
 }
 
 export function ListingCard({ listing }: { listing: Listing }) {
@@ -28,6 +29,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <h3 className="mt-3 line-clamp-2 text-lg font-bold">{listing.title}</h3>
       <p className="mt-0.5 text-sm font-bold text-plum-soft">
         {formatQty(listing.quantity, listing.unit)} · {listing.area || listing.city}
+        {listing.distance_km != null && <span className="text-violet"> · {formatDistance(listing.distance_km)}</span>}
       </p>
       <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-xs font-bold text-plum-soft">
         <span className="truncate">by {listing.donor.name}</span>

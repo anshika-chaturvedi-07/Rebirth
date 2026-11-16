@@ -9,7 +9,7 @@ The stage is derived from timestamps (priority_until, marketplace_until), so no 
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base, utcnow
@@ -79,6 +79,7 @@ class User(Base):
 
 class Listing(Base):
     __tablename__ = "listings"
+    __table_args__ = (Index("ix_listings_lat_lng", "lat", "lng"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     donor_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -122,6 +123,7 @@ class Claim(Base):
 
 class Need(Base):
     __tablename__ = "needs"
+    __table_args__ = (Index("ix_needs_lat_lng", "lat", "lng"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     requester_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)

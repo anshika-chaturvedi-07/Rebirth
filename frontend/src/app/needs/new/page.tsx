@@ -7,6 +7,7 @@ import { Character } from "@/components/characters/Character";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptyState, ErrorNote } from "@/components/ui/EmptyState";
+import { LocationPicker, type PickedLocation } from "@/components/map/LocationPicker";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/FormBits";
 import { api } from "@/lib/api";
 import { CATEGORY_TILES } from "@/lib/categories";
@@ -21,6 +22,7 @@ function NeedForm({ user }: { user: User }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loc, setLoc] = useState<PickedLocation | null>(null);
   const unit = categories.find((c) => c.slug === category)?.unit;
 
   if (!["organisation", "individual", "admin"].includes(user.role)) {
@@ -47,6 +49,8 @@ function NeedForm({ user }: { user: User }) {
         body: {
           title: d.title.trim(), description: (d.description ?? "").trim(), category, quantity: Number(d.quantity),
           urgency: Number(d.urgency), city: d.city.trim(), area: (d.area ?? "").trim(),
+          lat: loc?.lat ?? null,
+          lng: loc?.lng ?? null,
           needed_by: d.needed_by ? new Date(d.needed_by).toISOString() : null,
         },
       });
@@ -92,14 +96,8 @@ function NeedForm({ user }: { user: User }) {
               {([3, 2, 1] as const).map((u) => <option key={u} value={u}>{URGENCY[u].label}</option>)}
             </Select>
           </div>
-          <div>
-            <Label htmlFor="area">Area / locality</Label>
-            <Input id="area" name="area" maxLength={120} />
-          </div>
-          <div>
-            <Label htmlFor="city">City</Label>
-            <Input id="city" name="city" defaultValue={user.city} aria-describedby="city-err" />
-            <FieldError id="city-err">{errors.city}</FieldError>
+          <div className="sm:col-span-2">
+            <LocationPicker defaultCity={user.city} onChange={setLoc} cityError={errors.city} />
           </div>
           <div>
             <Label htmlFor="needed_by" hint="optional">Needed by</Label>

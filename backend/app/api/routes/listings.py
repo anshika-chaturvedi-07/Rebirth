@@ -1,12 +1,14 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import DB, CurrentUser, OptionalUser, require_roles
+from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
+from app.services.geo import bounding_box, haversine_km, public_coord
 from app.db.session import utcnow
 from app.models import Claim, ClaimStatus, Listing, ListingStatus, Role, Stage, User
 from app.schemas import ClaimIn, ClaimOut, ListingIn, ListingOut, ListingPage, MyClaimOut, UserBrief
@@ -55,14 +57,18 @@ def claim_block_reason(db: Session, listing: Listing, user: User | None, stage: 
     return None
 
 
-def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime) -> ListingOut:
+def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime, distance_km: float | None = None) -> ListingOut:
     stage = stage_of(listing, now)
     mine = next((c for c in listing.claims if viewer and c.claimant_id == viewer.id and c.status != ClaimStatus.cancelled), None)
     reason = claim_block_reason(db, listing, viewer, stage, now)
+    # Exact location only for the donor and for someone whose request was accepted; everyone else sees ~100 m.
+    exact = bool(viewer and (viewer.id == listing.donor_id or (mine and mine.status in (ClaimStatus.accepted, ClaimStatus.completed))))
+    lat, lng = (listing.lat, listing.lng) if exact else (public_coord(listing.lat), public_coord(listing.lng))
     return ListingOut(
         id=listing.id, title=listing.title, description=listing.description, category=listing.category,
         subcategory=listing.subcategory, quantity=listing.quantity, unit=listing.unit, condition=listing.condition,
-        city=listing.city, area=listing.area, lat=listing.lat, lng=listing.lng, price_inr=listing.price_inr,
+        city=listing.city, area=listing.area, lat=lat, lng=lng, location_exact=exact,
+        distance_km=round(distance_km, 2) if distance_km is not None else None, price_inr=listing.price_inr,
         status=listing.status, stage=stage, stage_ends_at=stage_ends_at(listing, stage),
         priority_until=listing.priority_until, marketplace_until=listing.marketplace_until, created_at=listing.created_at,
         donor=UserBrief.model_validate(listing.donor),
@@ -93,9 +99,17 @@ def list_listings(
     city: str | None = None,
     q: Annotated[str | None, Query(max_length=80)] = None,
     mine: bool = False,
-    limit: Annotated[int, Query(ge=1, le=100)] = 24,
+    near_lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
+    near_lng: Annotated[float | None, Query(ge=-180, le=180)] = None,
+    radius_km: Annotated[float, Query(gt=0, le=100)] = 10,
+    sort: Literal["newest", "distance"] = "newest",
+    limit: Annotated[int, Query(ge=1, le=300)] = 24,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ListingPage:
+    if (near_lat is None) != (near_lng is None):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Send both near_lat and near_lng.")
+    if sort == "distance" and near_lat is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Sorting by distance needs a location.")
     now = utcnow()
     stmt = select(Listing)
     if mine:
@@ -116,13 +130,21 @@ def list_listings(
         like = f"%{q.lower()}%"
         stmt = stmt.where(or_(func.lower(Listing.title).like(like), func.lower(Listing.description).like(like)))
 
+    loaded = stmt.options(selectinload(Listing.claims), selectinload(Listing.donor)).order_by(Listing.created_at.desc())
+
+    if near_lat is not None and near_lng is not None:
+        box = bounding_box(near_lat, near_lng, radius_km)
+        candidates = db.scalars(
+            loaded.where(Listing.lat.between(box.min_lat, box.max_lat), Listing.lng.between(box.min_lng, box.max_lng))
+        ).all()
+        within = [(l, d) for l in candidates if (d := haversine_km(near_lat, near_lng, l.lat, l.lng)) <= radius_km]
+        if sort == "distance":
+            within.sort(key=lambda pair: pair[1])
+        page = within[offset : offset + limit]
+        return ListingPage(items=[to_out(db, l, viewer, now, d) for l, d in page], total=len(within))
+
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
-    rows = db.scalars(
-        stmt.options(selectinload(Listing.claims), selectinload(Listing.donor))
-        .order_by(Listing.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    ).all()
+    rows = db.scalars(loaded.limit(limit).offset(offset)).all()
     return ListingPage(items=[to_out(db, l, viewer, now) for l in rows], total=total)
 
 
@@ -137,10 +159,13 @@ def create_listing(
         priority_until, marketplace_until = lifecycle_windows(body.category, now, body.best_before)
     except LifecycleError as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    lat, lng = body.lat, body.lng
+    if lat is None or lng is None:
+        lat, lng = places.resolve(body.area, body.city) or (None, None)
     listing = Listing(
         donor_id=user.id, title=body.title.strip(), description=body.description.strip(), category=body.category,
         subcategory=body.subcategory, quantity=body.quantity, unit=CATEGORY_BY_SLUG[body.category].unit,
-        condition=body.condition, city=body.city.strip(), area=body.area.strip(), lat=body.lat, lng=body.lng,
+        condition=body.condition, city=body.city.strip(), area=body.area.strip(), lat=lat, lng=lng,
         original_price_inr=body.original_price_inr, price_inr=suggest_price(body.original_price_inr, body.condition),
         priority_until=priority_until, marketplace_until=marketplace_until, created_at=now,
     )

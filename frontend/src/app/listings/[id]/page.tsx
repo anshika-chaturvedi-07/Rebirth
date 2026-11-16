@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { ClayMap } from "@/components/map/ClayMap";
+import { listingMarker } from "@/components/map/pins";
 import { ArrowLeft, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { PageShell } from "@/components/layout/PageShell";
@@ -213,6 +215,25 @@ function RequestPanel({ listing, onChange }: { listing: Listing; onChange: () =>
   );
 }
 
+function WhereCard({ listing }: { listing: Listing & { lat: number; lng: number } }) {
+  const point = { lat: listing.lat, lng: listing.lng };
+  const markers = useMemo(() => {
+    const m = listingMarker(listing);
+    return m ? [{ ...m, popup: undefined }] : [];
+  }, [listing]);
+  return (
+    <section className="clay overflow-hidden rounded-[2.25rem] bg-card" aria-label="Pickup area">
+      <ClayMap center={point} zoom={14} markers={markers} radiusKm={listing.location_exact ? null : 0.2} className="h-52 w-full" label="Pickup area map" />
+      <p className="px-5 py-3 text-sm font-bold text-plum-soft">
+        📍 {[listing.area, listing.city].filter(Boolean).join(", ")}
+        {listing.location_exact
+          ? listing.is_owner ? " · exact spot (only you and an accepted requester see this)" : " · exact pickup spot"
+          : " · approximate area. The exact spot is shared once the donor accepts your request."}
+      </p>
+    </section>
+  );
+}
+
 function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const isNew = useSearchParams().get("new") === "1";
@@ -254,9 +275,12 @@ function ListingDetail() {
           <div className="mt-6"><Journey listing={listing} /></div>
         </article>
 
-        <aside className="clay h-fit rounded-[2.25rem] bg-card p-5 sm:p-6">
-          {listing.is_owner ? <OwnerPanel listing={listing} onChange={reload} /> : <RequestPanel listing={listing} onChange={reload} />}
-        </aside>
+        <div className="grid h-fit gap-5">
+          <aside className="clay rounded-[2.25rem] bg-card p-5 sm:p-6">
+            {listing.is_owner ? <OwnerPanel listing={listing} onChange={reload} /> : <RequestPanel listing={listing} onChange={reload} />}
+          </aside>
+          {listing.lat != null && listing.lng != null && <WhereCard listing={listing as Listing & { lat: number; lng: number }} />}
+        </div>
       </div>
     </>
   );

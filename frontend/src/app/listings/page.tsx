@@ -2,7 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { LocateFixed, Map as MapIcon, Search } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useUserLocation } from "@/lib/geo";
 import { PageShell } from "@/components/layout/PageShell";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { SectionHead } from "@/components/landing/SectionHead";
@@ -35,19 +37,35 @@ function Browse() {
   );
   const [q, setQ] = useState("");
   const [query, setQuery] = useState("");
+  const [nearMe, setNearMe] = useState(false);
+  const { user } = useAuth();
+  const { location, locating, error: locError, locate, source } = useUserLocation();
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(q.trim()), 300);
     return () => clearTimeout(t);
   }, [q]);
 
+  function toggleNearMe() {
+    if (!nearMe && !location) locate(user?.city);
+    setNearMe((v) => !v);
+  }
+
+  const near = nearMe && location;
   const path = useMemo(() => {
+    if (nearMe && !location) return null; // wait for a position
     const p = new URLSearchParams({ limit: "48" });
     if (stage !== "all") p.set("stage", stage);
     if (category) p.set("category", category);
     if (query) p.set("q", query);
+    if (nearMe && location) {
+      p.set("near_lat", location.lat.toFixed(5));
+      p.set("near_lng", location.lng.toFixed(5));
+      p.set("radius_km", "15");
+      p.set("sort", "distance");
+    }
     return `/api/listings?${p}`;
-  }, [stage, category, query]);
+  }, [stage, category, query, nearMe, location]);
 
   const { data, error, loading } = useApi<{ items: Listing[]; total: number }>(path);
 
@@ -76,7 +94,16 @@ function Browse() {
           <span className="sr-only">Search items</span>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search laptops, chairs…" className="min-w-0 flex-1 bg-transparent font-semibold focus:outline-none" />
         </label>
+        <button onClick={toggleNearMe} aria-pressed={nearMe} disabled={locating}
+          className={`clay-sm flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold ${nearMe ? "bg-lavender text-white" : "bg-card"}`}>
+          <LocateFixed size={16} /> {locating ? "Finding you…" : nearMe ? "Near me · 15 km" : "Near me"}
+        </button>
+        <ButtonLink href="/map" size="sm"><MapIcon size={16} /> Map view</ButtonLink>
       </div>
+      {nearMe && locError && <p className="mt-3 rounded-2xl bg-butter-t px-4 py-2.5 text-sm font-bold">{locError}</p>}
+      {near && !locError && source !== "device" && (
+        <p className="mt-3 text-sm font-bold text-plum-soft">Sorted by distance from your city centre.</p>
+      )}
 
       <div className="mt-4 flex gap-2 overflow-x-auto pb-2" aria-label="Categories">
         <button onClick={() => setCategory(null)} className={`flex-none rounded-full px-3.5 py-1.5 text-sm font-bold ${category === null ? "clay-sm bg-plum text-white" : "bg-card"}`}>

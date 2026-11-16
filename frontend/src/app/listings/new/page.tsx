@@ -7,6 +7,7 @@ import { Character } from "@/components/characters/Character";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/Button";
 import { EmptyState, ErrorNote } from "@/components/ui/EmptyState";
+import { LocationPicker, type PickedLocation } from "@/components/map/LocationPicker";
 import { FieldError, Input, Label, localDateTime, Select, Textarea } from "@/components/ui/FormBits";
 import { api } from "@/lib/api";
 import { CATEGORY_TILES } from "@/lib/categories";
@@ -26,6 +27,7 @@ function NewListingForm({ user }: { user: User }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loc, setLoc] = useState<PickedLocation | null>(null);
   const cat = categories.find((c) => c.slug === category);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -55,6 +57,8 @@ function NewListingForm({ user }: { user: User }) {
           condition: d.condition as Condition,
           city: d.city.trim(),
           area: (d.area ?? "").trim(),
+          lat: loc?.lat ?? null,
+          lng: loc?.lng ?? null,
           original_price_inr: d.original_price_inr ? Number(d.original_price_inr) : null,
           best_before: d.best_before ? new Date(d.best_before).toISOString() : null,
         },
@@ -130,14 +134,8 @@ function NewListingForm({ user }: { user: User }) {
               <Input id="original_price_inr" name="original_price_inr" type="number" min="0" step="1" placeholder="Helps us suggest a fair resale price" />
             </div>
           )}
-          <div>
-            <Label htmlFor="area">Area / locality</Label>
-            <Input id="area" name="area" maxLength={120} placeholder="e.g. Koramangala" />
-          </div>
-          <div>
-            <Label htmlFor="city">City</Label>
-            <Input id="city" name="city" defaultValue={user.city} maxLength={80} aria-describedby="city-err" />
-            <FieldError id="city-err">{errors.city}</FieldError>
+          <div className="sm:col-span-2">
+            <LocationPicker defaultCity={user.city} onChange={setLoc} cityError={errors.city} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="description" hint="optional">Details</Label>

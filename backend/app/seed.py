@@ -11,6 +11,7 @@ from datetime import timedelta
 from sqlalchemy import delete, select
 
 from app.core.security import hash_password
+from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.db.session import SessionLocal, utcnow
 from app.models import Claim, Listing, Need, User
@@ -30,11 +31,7 @@ USERS = [
     ("kabir", "recycler", "Kabir's Repair Studio", "kabir@rebirth.test", False),
 ]
 
-AREAS = {
-    "Koramangala": (12.9352, 77.6245), "Indiranagar": (12.9719, 77.6412), "Jayanagar": (12.9250, 77.5938),
-    "HSR Layout": (12.9116, 77.6474), "Whitefield": (12.9698, 77.7500), "Malleshwaram": (13.0031, 77.5643),
-    "BTM Layout": (12.9166, 77.6101), "Electronic City": (12.8452, 77.6602), "Yelahanka": (13.1007, 77.5963),
-}
+AREAS = places.LOCALITIES["Bengaluru"]
 
 # donor, title, category, subcategory, qty, condition, area, original price, hours ago, best-before hours from now, description
 LISTINGS = [

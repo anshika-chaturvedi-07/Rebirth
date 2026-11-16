@@ -19,7 +19,8 @@ REBIRTH connects unused resources (surplus food, leftover building materials, ol
 | Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS v4, Framer Motion |
 | Auth | FastAPI-issued JWT in an httpOnly cookie, bcrypt password hashing, role-based permissions |
 | Backend | FastAPI (Python), Pydantic, SQLAlchemy 2.0, Alembic |
-| Data | PostgreSQL + PostGIS, Redis |
+| Data | PostgreSQL (SQLite for local dev), Redis |
+| Maps | MapLibre GL with free OpenFreeMap vector tiles, repainted in the REBIRTH palette |
 | AI / data science | PyTorch + CLIP (vision), LightGBM (matching), Prophet (forecasting), OR-Tools (routing) |
 | Infra | Docker, GitHub Actions, Vercel + Render + Supabase |
 
@@ -49,7 +50,7 @@ rebirth/
 
 ## Run it locally
 
-**Frontend** (http://localhost:3000)
+**Frontend** (http://localhost:3000, or another port with `npm run dev -- -p 3001`)
 
 ```bash
 cd frontend
@@ -101,6 +102,15 @@ cd backend && pytest
 
 A listing's stage comes from two timestamps set when it is created (`priority_until`, `marketplace_until`), using each category's rules. That means stages change on time without a background job and can be filtered in SQL. Food needs a best-before time and is marked expired after it. Donors accept one request, which reserves the item, then confirm the handover.
 
+## Maps and location
+
+- **`/map`**: items (round pins, coloured by stage) and needs (square pins, coloured by urgency) inside a 2 / 5 / 10 / 25 km circle, with a nearest-first list. You can also move the map and search that area.
+- **Near-me browsing** on `/listings`, with distances on every card.
+- **Location picker** on the listing and need forms: locality autocomplete, "use my location", and a draggable pin.
+- **Search on any database:** a bounding-box filter runs in SQL on indexed `lat`/`lng` columns, then exact great-circle (haversine) distances are computed in Python. It can be swapped for PostGIS `ST_DWithin` without changing the API.
+- **Built-in places list** of Indian cities and Bengaluru localities, with aliases such as "Bangalore". No addresses are sent to a third-party geocoder.
+- **Privacy:** other users see a donor's location rounded to about 100 m. Only the donor and a requester whose request was accepted see the exact spot. Organisations' needs are shown exactly; individuals' needs are rounded.
+
 ## Design system: "clay world"
 
 Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Baloo 2 + Nunito type (Baloo 2 also covers Hindi), and an original cast of cartoon characters drawn in SVG that blink, wave and peek over the UI.
@@ -119,7 +129,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 
 - [x] **Phase 1:** design system, character cast, landing page, sign-in / sign-up UI, API skeleton
 - [x] **Phase 2:** accounts and roles (JWT cookie sessions), listings, requests and needs, database + migrations
-- [ ] **Phase 3:** map and location search (MapLibre + PostGIS)
+- [x] **Phase 3:** interactive map, near-me search, locality autocomplete, location privacy
 - [ ] **Phase 4:** AI photo identification and condition assessment
 - [ ] **Phase 5:** matching engine and volunteer route optimisation
 - [ ] **Phase 6:** forecasting and circular-economy analytics
