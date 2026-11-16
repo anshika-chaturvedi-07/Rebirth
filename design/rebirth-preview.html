@@ -1,0 +1,641 @@
+<meta charset="utf-8">
+<title>REBIRTH</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: a soft "clay world" — puffy pastel cards on warm cream, characters peeking over and leaning on the UI. Single bright theme by choice. */
+:root {
+  color-scheme: light;
+  --cream: #FFF7EC;
+  --cream-2: #FDEBD3;
+  --card: #FFFDF8;
+  --plum: #3D2C5A;
+  --plum-soft: #6E5D8C;
+  --lime: #C2EF6B;
+  --coral: #FF8C73;
+  --sky: #74CCEC;
+  --lavender: #B39DF5;
+  --butter: #FFD66B;
+  --blush: #FFB8CB;
+  --mint: #9FE3C9;
+  --lime-t: #EEFBD6; --coral-t: #FFE6DF; --sky-t: #DDF3FB; --lav-t: #ECE5FF; --butter-t: #FFF3CF; --blush-t: #FFE7EE; --mint-t: #E0F7EE;
+  --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --clay: 0 22px 40px -18px rgba(61,44,90,.30), 0 6px 14px -6px rgba(61,44,90,.12), inset 0 -6px 0 rgba(61,44,90,.06), inset 0 4px 10px rgba(255,255,255,.85);
+  --clay-sm: 0 10px 20px -10px rgba(61,44,90,.30), inset 0 -4px 0 rgba(61,44,90,.08), inset 0 3px 6px rgba(255,255,255,.8);
+  --r-xl: 36px; --r-lg: 26px; --r-md: 18px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--cream); color: var(--plum);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(600px 400px at 90% -5%, var(--lav-t), transparent 70%),
+    radial-gradient(500px 380px at -5% 20%, var(--lime-t), transparent 70%),
+    radial-gradient(700px 500px at 100% 60%, var(--blush-t), transparent 70%);
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.muted { color: var(--plum-soft); }
+
+/* ---------- buttons ---------- */
+.btn {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+  border: 0; cursor: pointer; text-decoration: none; color: var(--plum);
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .8rem 1.4rem; border-radius: 999px; background: var(--card); box-shadow: var(--clay-sm);
+  transition: transform .18s cubic-bezier(.3,1.6,.5,1), box-shadow .18s;
+}
+.btn:hover { transform: translateY(-3px) scale(1.03); }
+.btn:active { transform: translateY(1px) scale(.96); }
+.btn:focus-visible { outline: 3px solid var(--lavender); outline-offset: 3px; }
+.btn-coral { background: var(--coral); color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.08); }
+.btn-lav { background: var(--lavender); color: #fff; }
+.btn-sm { font-size: .92rem; padding: .55rem 1rem; }
+
+/* ---------- nav ---------- */
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 22px; }
+.logo { font-family: var(--font-display); font-weight: 800; font-size: 1.9rem; letter-spacing: .01em; color: var(--plum); text-decoration: none; display: flex; align-items: center; gap: .45rem; }
+.logo .re { color: var(--coral); }
+.logo-mark { width: 40px; height: 40px; border-radius: 14px; background: var(--lime); display: grid; place-items: center; box-shadow: var(--clay-sm); }
+.nav-links { display: flex; gap: .3rem; background: var(--card); padding: .35rem; border-radius: 999px; box-shadow: var(--clay-sm); }
+.nav-links a { text-decoration: none; color: var(--plum); font-weight: 700; padding: .45rem .95rem; border-radius: 999px; font-size: .95rem; }
+.nav-links a.active, .nav-links a:hover { background: var(--lav-t); }
+@media (max-width: 860px) { .nav-links { display: none; } }
+
+/* ---------- hero ---------- */
+.hero { position: relative; display: grid; grid-template-columns: 1.05fr 1fr; gap: 2rem; align-items: center; padding-block: 30px 70px; }
+.bigword {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(5rem, 19vw, 15rem);
+  color: var(--lavender); opacity: .16; letter-spacing: .02em; pointer-events: none; white-space: nowrap; z-index: 0;
+}
+.hero > *:not(.bigword) { position: relative; z-index: 1; }
+.eyebrow { display: inline-flex; align-items: center; gap: .5rem; background: var(--lime); padding: .35rem .9rem; border-radius: 999px; font-weight: 800; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; box-shadow: var(--clay-sm); }
+.hero h1 { font-size: clamp(2.8rem, 6.2vw, 5rem); margin-top: 1rem; }
+.hero h1 .c1 { color: var(--coral); }
+.hero h1 .c2 { color: #8C6BEA; }
+.hindi { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; color: var(--plum-soft); margin-top: .6rem; }
+.lead { font-size: 1.12rem; margin-top: 1rem; max-width: 34rem; color: var(--plum-soft); }
+.cta-row { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 1.6rem; }
+.trust { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: 1.8rem; }
+.trust div { font-weight: 700; color: var(--plum-soft); font-size: .92rem; }
+.trust b { display: block; font-family: var(--font-display); font-size: 1.7rem; color: var(--plum); line-height: 1; }
+
+.stage { position: relative; min-height: 520px; display: flex; align-items: flex-end; justify-content: center; }
+.platform { position: absolute; bottom: 0; left: 6%; right: 6%; height: 70px; border-radius: 50%; background: var(--lav-t); box-shadow: inset 0 -10px 0 rgba(61,44,90,.06); }
+.card-wrap { position: relative; z-index: 3; width: min(390px, 100%); margin-bottom: 30px; }
+.item-card {
+  position: relative; z-index: 2;
+  background: var(--card); border-radius: var(--r-xl); padding: 22px; box-shadow: var(--clay);
+}
+.peek { position: absolute; z-index: 1; bottom: calc(100% - 78px); }
+.peek.aarav { left: 4px; width: 190px; }
+.peek.dog { right: 0; width: 140px; bottom: calc(100% - 40px); z-index: 3; }
+.item-photo { height: 150px; border-radius: var(--r-lg); background: var(--sky-t); display: grid; place-items: center; position: relative; overflow: hidden; }
+.item-photo svg { width: 64%; }
+.chip { display: inline-flex; align-items: center; gap: .3rem; font-weight: 800; font-size: .78rem; padding: .28rem .65rem; border-radius: 999px; }
+.chip.free { background: var(--lime); }
+.chip.dist { background: var(--sky-t); }
+.chip.match { background: var(--lav-t); color: #6A4FD0; }
+.item-photo .chip { position: absolute; top: 12px; }
+.item-photo .chip.free { left: 12px; }
+.item-photo .chip.match { right: 12px; }
+.item-title { font-size: 1.35rem; margin-top: 14px; }
+.item-meta { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 8px; }
+.window { margin-top: 14px; background: var(--cream); border-radius: var(--r-md); padding: 10px 12px; }
+.window-top { display: flex; justify-content: space-between; font-weight: 700; font-size: .85rem; }
+.bar { height: 12px; border-radius: 99px; background: var(--cream-2); margin-top: 6px; overflow: hidden; box-shadow: inset 0 2px 3px rgba(61,44,90,.1); }
+.bar i { display: block; height: 100%; width: 62%; border-radius: 99px; background: linear-gradient(90deg, var(--lime), #9ADB3C); }
+.item-card .btn { width: 100%; justify-content: center; margin-top: 14px; }
+
+.float-pill { position: absolute; z-index: 4; background: var(--card); border-radius: 999px; padding: .5rem .9rem .5rem .5rem; box-shadow: var(--clay-sm); display: flex; align-items: center; gap: .55rem; font-weight: 700; font-size: .85rem; white-space: nowrap; }
+.float-pill .dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 1rem; }
+.fp1 { top: 30%; left: -6%; animation: bob 5s ease-in-out infinite; }
+.fp2 { top: 52%; right: -6%; animation: bob 6s ease-in-out infinite .8s; }
+.cloud { position: absolute; z-index: 0; animation: drift 9s ease-in-out infinite; }
+.cloud.c1 { top: 0; right: 12%; width: 120px; }
+.cloud.c2 { top: 30%; left: 0; width: 90px; animation-delay: -4s; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .stage { min-height: 500px; margin-top: 40px; }
+  .fp1 { left: 0; } .fp2 { right: 0; }
+}
+
+/* ---------- section scaffolding ---------- */
+section.block { padding-block: 60px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 28px; }
+.sec-head h2 { font-size: clamp(2rem, 4vw, 3rem); }
+.sec-head p { max-width: 30rem; color: var(--plum-soft); }
+.kicker { font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .8rem; color: #8C6BEA; margin-bottom: .4rem; }
+
+/* ---------- categories ---------- */
+.cats { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; }
+.cat { background: var(--card); border-radius: var(--r-lg); padding: 16px 10px 14px; text-align: center; box-shadow: var(--clay-sm); transition: transform .2s cubic-bezier(.3,1.6,.5,1); cursor: pointer; }
+.cat:hover { transform: translateY(-6px) rotate(-1.5deg); }
+.cat .tile { width: 60px; height: 60px; margin: 0 auto 10px; border-radius: 20px; display: grid; place-items: center; font-size: 1.8rem; background: var(--c); box-shadow: inset 0 -5px 0 rgba(61,44,90,.10), inset 0 4px 8px rgba(255,255,255,.6), 0 8px 14px -8px rgba(61,44,90,.35); }
+.cat b { display: block; font-family: var(--font-display); font-size: 1rem; line-height: 1.15; }
+.cat small { color: var(--plum-soft); font-weight: 700; font-size: .78rem; }
+@media (max-width: 980px) { .cats { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 560px) { .cats { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------- lifecycle ---------- */
+.journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; position: relative; }
+.stage-card { border-radius: var(--r-xl); padding: 26px; box-shadow: var(--clay); position: relative; min-width: 0; }
+.stage-card .step { font-family: var(--font-display); font-weight: 800; font-size: .9rem; background: rgba(255,255,255,.7); border-radius: 999px; padding: .2rem .75rem; display: inline-block; }
+.stage-card h3 { font-size: 1.7rem; margin-top: 12px; }
+.stage-card p { margin-top: 8px; color: var(--plum); opacity: .8; }
+.stage-card ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.stage-card li { background: rgba(255,255,255,.65); border-radius: 12px; padding: 6px 10px; font-weight: 700; font-size: .88rem; display: flex; justify-content: space-between; gap: .5rem; }
+.s1 { background: var(--lime-t); } .s2 { background: var(--sky-t); } .s3 { background: var(--lav-t); }
+.arrow { position: absolute; top: 50%; right: -26px; width: 30px; height: 30px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; font-weight: 800; z-index: 2; box-shadow: var(--clay-sm); }
+@media (max-width: 860px) { .journey { grid-template-columns: 1fr; } .arrow { top: auto; bottom: -24px; right: 50%; transform: translateX(50%) rotate(90deg); } }
+
+/* ---------- cast ---------- */
+.cast { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.person { border-radius: var(--r-xl); background: var(--bg); padding: 18px 18px 20px; box-shadow: var(--clay); text-align: center; transition: transform .25s cubic-bezier(.3,1.6,.5,1); min-width: 0; }
+.person:hover { transform: translateY(-8px); }
+.person .art { height: 190px; display: flex; align-items: flex-end; justify-content: center; }
+.person .art svg { height: 100%; width: auto; max-width: 100%; }
+.person h3 { font-size: 1.45rem; margin-top: 8px; }
+.person .role { font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--plum-soft); }
+.person p { font-size: .92rem; margin-top: 8px; }
+.person.intro { background: var(--plum); color: #fff; text-align: left; display: flex; flex-direction: column; justify-content: center; }
+.person.intro h3 { font-size: 2rem; }
+.person.intro p { color: #E6DDF7; font-size: 1rem; }
+@media (max-width: 980px) { .cast { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .cast { grid-template-columns: 1fr; } }
+
+/* ---------- dashboard preview ---------- */
+.dash { display: grid; grid-template-columns: 220px 1fr; gap: 18px; background: var(--lav-t); border-radius: 40px; padding: 18px; box-shadow: var(--clay); }
+.side { background: var(--lavender); border-radius: 30px; padding: 20px 14px; color: #fff; display: flex; flex-direction: column; gap: 6px; box-shadow: inset 0 -6px 0 rgba(61,44,90,.08); }
+.side .me { text-align: center; margin-bottom: 10px; }
+.side .avatar { width: 92px; height: 92px; border-radius: 50%; background: var(--coral-t); margin: 0 auto; overflow: hidden; border: 4px solid #fff; display: flex; align-items: flex-end; justify-content: center; }
+.side .avatar svg { width: 120%; margin-bottom: -18px; }
+.side .me b { display: block; font-family: var(--font-display); font-size: 1.25rem; margin-top: 6px; }
+.side a { color: #fff; text-decoration: none; font-weight: 700; padding: .6rem .9rem; border-radius: 16px; display: flex; gap: .6rem; align-items: center; }
+.side a.on { background: var(--card); color: var(--plum); box-shadow: var(--clay-sm); }
+.side .badge-card { margin-top: auto; background: var(--blush); border-radius: 22px; padding: 14px; text-align: center; color: var(--plum); font-weight: 700; font-size: .85rem; }
+.side .badge-card .medal { font-size: 1.8rem; }
+.main { display: grid; gap: 16px; min-width: 0; }
+.greet { background: var(--card); border-radius: 28px; padding: 18px 22px; display: flex; align-items: center; gap: 18px; box-shadow: var(--clay-sm); overflow: hidden; position: relative; }
+.greet h3 { font-size: 1.7rem; }
+.greet .art { width: 120px; flex: none; align-self: flex-end; margin-bottom: -22px; }
+.greet .grow { flex: 1; min-width: 0; }
+.greet .btn { margin-top: 10px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat { border-radius: 24px; padding: 14px 16px; background: var(--bg); box-shadow: var(--clay-sm); }
+.stat .ic { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; background: var(--c); font-size: 1.15rem; box-shadow: inset 0 -3px 0 rgba(61,44,90,.1); }
+.stat small { display: block; margin-top: 8px; font-weight: 700; color: var(--plum-soft); font-size: .8rem; }
+.stat b { font-family: var(--font-display); font-size: 1.75rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat em { font-style: normal; font-weight: 800; font-size: .75rem; color: #3E9B3A; }
+.row2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
+.panel { background: var(--card); border-radius: 26px; padding: 16px 18px; box-shadow: var(--clay-sm); min-width: 0; }
+.panel h4 { margin: 0 0 10px; font-family: var(--font-display); font-size: 1.1rem; }
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding-top: 6px; }
+.bars div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.bars span { width: 100%; max-width: 34px; border-radius: 12px 12px 8px 8px; background: var(--c); box-shadow: inset 0 -4px 0 rgba(61,44,90,.1), inset 0 3px 5px rgba(255,255,255,.6); transform-origin: bottom; animation: grow 1s cubic-bezier(.3,1.4,.5,1) both; }
+.bars label { font-size: .75rem; font-weight: 700; color: var(--plum-soft); }
+.donut-wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.donut { width: 120px; height: 120px; border-radius: 50%; flex: none; background: conic-gradient(var(--coral) 0 34%, var(--sky) 34% 52%, var(--lavender) 52% 68%, var(--lime) 68% 84%, var(--butter) 84% 100%); position: relative; box-shadow: var(--clay-sm); }
+.donut::after { content: ""; position: absolute; inset: 28px; border-radius: 50%; background: var(--card); box-shadow: inset 0 3px 6px rgba(61,44,90,.12); }
+.legend { display: grid; gap: 4px; font-size: .82rem; font-weight: 700; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 4px; margin-right: 6px; background: var(--c); }
+@media (max-width: 900px) { .dash { grid-template-columns: 1fr; } .side { flex-direction: row; flex-wrap: wrap; align-items: center; } .side .me { display: none; } .side .badge-card { display: none; } .stats { grid-template-columns: repeat(2, 1fr); } .row2 { grid-template-columns: 1fr; } }
+
+/* ---------- palette ---------- */
+.palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; }
+.sw { border-radius: 22px; padding: 64px 12px 12px; background: var(--c); box-shadow: var(--clay-sm); font-weight: 800; font-size: .85rem; min-width: 0; }
+.sw small { display: block; font-weight: 700; opacity: .75; font-family: ui-monospace, Consolas, monospace; font-size: .75rem; }
+.sw.dark { color: #fff; }
+.type-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.type-card { background: var(--card); border-radius: 26px; padding: 20px; box-shadow: var(--clay-sm); }
+.type-card .big { font-family: var(--font-display); font-weight: 800; font-size: 2.6rem; line-height: 1.05; }
+@media (max-width: 900px) { .palette { grid-template-columns: repeat(4, 1fr); } .type-row { grid-template-columns: 1fr; } }
+
+/* ---------- CTA / footer ---------- */
+.cta { background: var(--coral); border-radius: 44px; padding: 40px; color: #fff; display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; box-shadow: var(--clay); position: relative; overflow: hidden; }
+.cta h2 { font-size: clamp(2rem, 4vw, 2.8rem); }
+.cta p { margin-top: 8px; opacity: .95; max-width: 34rem; }
+.cta .art { width: 230px; align-self: end; margin-bottom: -40px; }
+.cta .btn { margin-top: 18px; }
+@media (max-width: 760px) { .cta { grid-template-columns: 1fr; padding: 28px; } .cta .art { justify-self: center; } }
+footer { padding-block: 40px 50px; text-align: center; color: var(--plum-soft); font-weight: 700; font-size: .9rem; }
+
+/* ---------- character animation ---------- */
+.eyes { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+.wave { transform-box: view-box; animation: wave 2.2s ease-in-out infinite; }
+.tail { animation: wag .5s ease-in-out infinite alternate; }
+.bob { animation: bob 4s ease-in-out infinite; }
+.wheel-spin { transform-box: fill-box; transform-origin: center; animation: spin 8s linear infinite; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-14deg); } }
+@keyframes wag { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(18px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes grow { from { transform: scaleY(.1); } to { transform: scaleY(1); } }
+
+.confetti { position: fixed; z-index: 99; width: 12px; height: 12px; border-radius: 4px; pointer-events: none; animation: pop 1.1s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes pop { to { transform: translate(var(--x), var(--y)) rotate(var(--r)); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<!-- shared clay shading for every character -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="glow" cx="35%" cy="28%" r="70%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".45"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shade" cx="50%" cy="20%" r="85%">
+      <stop offset=".6" stop-color="#3D2C5A" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3D2C5A" stop-opacity=".22"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <!-- NAV -->
+  <header class="nav">
+    <a href="#" class="logo" aria-label="REBIRTH home">
+      <span class="logo-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 21c-4.4 0-8-3.4-8-7.8C4 8 9 4 12 3c3 1 8 5 8 10.2 0 4.4-3.6 7.8-8 7.8Z" fill="#7BC043"/><path d="M12 20V10m0 4 3.5-3M12 16l-3-2.5" stroke="#3D2C5A" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span><span class="re">RE</span>BIRTH</span>
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#" class="active">Home</a><a href="#categories">Explore</a><a href="#journey">How it works</a><a href="#cast">Community</a><a href="#dashboard">Impact</a>
+    </nav>
+    <a href="#" class="btn btn-lav btn-sm">Sign in</a>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="bigword" aria-hidden="true">REBIRTH</div>
+    <div>
+      <span class="eyebrow">🌍 A world where everything gets a second chance</span>
+      <h1>Your old things,<br><span class="c1">someone's</span> <span class="c2">new start.</span></h1>
+      <p class="hindi">हर चीज़ को दूसरा मौका</p>
+      <p class="lead">Snap a photo of anything you don't need. REBIRTH finds a school, NGO or neighbour who does, and a volunteer to bring it there.</p>
+      <div class="cta-row">
+        <button class="btn btn-coral" data-confetti>📸 Give something</button>
+        <a href="#categories" class="btn">🔎 Find what you need</a>
+      </div>
+      <div class="trust">
+        <div><b>18,420 kg</b>rescued this month</div>
+        <div><b>312</b>NGOs &amp; schools</div>
+        <div><b>46 t</b>CO₂e avoided</div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <svg class="cloud c1" viewBox="0 0 120 60" aria-hidden="true"><g fill="#fff"><circle cx="35" cy="38" r="20"/><circle cx="60" cy="28" r="26"/><circle cx="88" cy="38" r="19"/><rect x="20" y="36" width="84" height="22" rx="11"/></g></svg>
+      <svg class="cloud c2" viewBox="0 0 120 60" aria-hidden="true"><g fill="#fff"><circle cx="35" cy="38" r="20"/><circle cx="60" cy="28" r="26"/><circle cx="88" cy="38" r="19"/><rect x="20" y="36" width="84" height="22" rx="11"/></g></svg>
+      <div class="platform"></div>
+
+      <div class="float-pill fp1"><span class="dot" style="background:var(--coral-t)">🍲</span>Meera shared 25 kg biryani</div>
+      <div class="float-pill fp2"><span class="dot" style="background:var(--lime-t)">🌱</span>+120 kg CO₂e saved</div>
+
+      <div class="card-wrap">
+      <div class="peek aarav bob" data-char="aarav"></div>
+      <div class="peek dog" data-char="dog"></div>
+      <div class="item-card">
+        <div class="item-photo">
+          <span class="chip free">FREE · priority</span>
+          <span class="chip match">94% match</span>
+          <svg viewBox="0 0 200 120" aria-hidden="true">
+            <rect x="40" y="10" width="120" height="80" rx="12" fill="#5B6B8C"/>
+            <rect x="48" y="18" width="104" height="64" rx="7" fill="#9BE0F5"/>
+            <circle cx="80" cy="45" r="9" fill="#fff" opacity=".7"/>
+            <path d="M58 76 L84 52 L102 68 L118 56 L142 76Z" fill="#7BC043"/>
+            <path d="M20 92 H180 C180 104 170 110 160 110 H40 C30 110 20 104 20 92Z" fill="#C9CFDC"/>
+            <rect x="86" y="94" width="28" height="5" rx="2.5" fill="#A9B0C0"/>
+          </svg>
+        </div>
+        <h3 class="item-title">Laptop · Dell Inspiron (2019)</h3>
+        <div class="item-meta">
+          <span class="chip dist">📍 1.2 km · Koramangala</span>
+          <span class="chip dist" style="background:var(--butter-t)">✓ Working · Good</span>
+        </div>
+        <div class="window">
+          <div class="window-top"><span>Free for students &amp; NGOs</span><span>2 days left</span></div>
+          <div class="bar"><i></i></div>
+          <small class="muted">Then listed at ₹6,500 in the marketplace</small>
+        </div>
+        <button class="btn btn-coral" data-confetti>Request for free</button>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section class="block" id="categories">
+    <div class="sec-head">
+      <div><div class="kicker">Everything has a place</div><h2>What can be reborn?</h2></div>
+      <p>Food, furniture, gadgets, building materials, clothes. If it still has value, someone nearby can use it.</p>
+    </div>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <!-- JOURNEY -->
+  <section class="block" id="journey">
+    <div class="sec-head">
+      <div><div class="kicker">The REBIRTH promise</div><h2>People first. Then everyone. Never the bin.</h2></div>
+      <p>Every item moves through three chances. Each step has its own colour, so you always know where something stands.</p>
+    </div>
+    <div class="journey">
+      <div class="stage-card s1">
+        <span class="step">Chance 1</span>
+        <h3>Free for those in need</h3>
+        <p>Verified NGOs, schools, shelters and individuals claim it first, at no cost.</p>
+        <ul><li><span>🍲 Cooked food</span><span>2 hours</span></li><li><span>🪑 Furniture</span><span>5 days</span></li><li><span>💻 Electronics</span><span>7 days</span></li></ul>
+        <span class="arrow">→</span>
+      </div>
+      <div class="stage-card s2">
+        <span class="step">Chance 2</span>
+        <h3>Low-price marketplace</h3>
+        <p>Unclaimed items go on sale to anyone, at an AI-suggested fair price. Pay with UPI.</p>
+        <ul><li><span>Laptop (2019)</span><span>₹6,500</span></li><li><span>Office chair</span><span>₹900</span></li><li><span>Textbooks (set of 8)</span><span>₹350</span></li></ul>
+        <span class="arrow">→</span>
+      </div>
+      <div class="stage-card s3">
+        <span class="step">Chance 3</span>
+        <h3>Repair or recycle</h3>
+        <p>Repair cafés and artisans fix what they can. Authorised recyclers take the rest.</p>
+        <ul><li><span>♻️ E-waste recycler</span><span>₹22/kg</span></li><li><span>🔧 Repair café</span><span>2.4 km</span></li><li><span>🧵 Upcycling artisan</span><span>Fabric</span></li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAST -->
+  <section class="block" id="cast">
+    <div class="sec-head">
+      <div><div class="kicker">The REBIRTH family</div><h2>Meet the people behind every handover</h2></div>
+      <p>These characters guide you through the app: on sign-in, in empty states and when a delivery is celebrated.</p>
+    </div>
+    <div class="cast" id="castGrid"></div>
+  </section>
+
+  <!-- DASHBOARD PREVIEW -->
+  <section class="block" id="dashboard">
+    <div class="sec-head">
+      <div><div class="kicker">Inside the app</div><h2>Your impact, in colour</h2></div>
+      <p>Here's what a restaurant owner sees on her donor dashboard after a busy week.</p>
+    </div>
+    <div class="dash">
+      <aside class="side">
+        <div class="me"><div class="avatar" data-char="meera"></div><b>Hi, Meera! 👋</b><small>Spice Route Kitchen</small></div>
+        <a href="#" class="on">🏠 Dashboard</a>
+        <a href="#">📦 My listings</a>
+        <a href="#">🤝 Handovers</a>
+        <a href="#">📈 Impact report</a>
+        <a href="#">⚙️ Settings</a>
+        <div class="badge-card"><div class="medal">🏅</div>Food Hero · Level 4<br><small>3 donations to Level 5</small></div>
+      </aside>
+      <div class="main">
+        <div class="greet">
+          <div class="grow">
+            <h3>Good evening, Meera! 🌙</h3>
+            <p class="muted">Tonight's 25 kg of biryani can feed Hope Night Shelter. Ravi is 8 minutes away.</p>
+            <button class="btn btn-coral btn-sm" data-confetti>Confirm pickup</button>
+          </div>
+          <div class="art" data-char="ravi" data-wave="1"></div>
+        </div>
+        <div class="stats">
+          <div class="stat" style="--bg:var(--coral-t);--c:var(--coral)"><div class="ic">🍲</div><small>Food rescued</small><b>1,248 kg</b><br><em>+18% this week</em></div>
+          <div class="stat" style="--bg:var(--lime-t);--c:var(--lime)"><div class="ic">🌱</div><small>CO₂e avoided</small><b>3.1 t</b><br><em>≈ 18,200 km not driven</em></div>
+          <div class="stat" style="--bg:var(--butter-t);--c:var(--butter)"><div class="ic">🍛</div><small>Meals served</small><b>2,970</b><br><em>+412 this week</em></div>
+          <div class="stat" style="--bg:var(--sky-t);--c:var(--sky)"><div class="ic">🔥</div><small>Giving streak</small><b>21 days</b><br><em>Personal best</em></div>
+        </div>
+        <div class="row2">
+          <div class="panel">
+            <h4>Kg donated this week</h4>
+            <div class="bars">
+              <div><span style="height:52%;--c:var(--lavender)"></span><label>Mon</label></div>
+              <div><span style="height:70%;--c:var(--blush);animation-delay:.05s"></span><label>Tue</label></div>
+              <div><span style="height:44%;--c:var(--coral);animation-delay:.1s"></span><label>Wed</label></div>
+              <div><span style="height:88%;--c:var(--butter);animation-delay:.15s"></span><label>Thu</label></div>
+              <div><span style="height:58%;--c:var(--lime);animation-delay:.2s"></span><label>Fri</label></div>
+              <div><span style="height:96%;--c:var(--sky);animation-delay:.25s"></span><label>Sat</label></div>
+              <div><span style="height:66%;--c:var(--lavender);animation-delay:.3s"></span><label>Sun</label></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h4>Where it went</h4>
+            <div class="donut-wrap">
+              <div class="donut" aria-hidden="true"></div>
+              <div class="legend">
+                <span><i style="--c:var(--coral)"></i>Shelters · 34%</span>
+                <span><i style="--c:var(--sky)"></i>Kitchens · 18%</span>
+                <span><i style="--c:var(--lavender)"></i>Schools · 16%</span>
+                <span><i style="--c:var(--lime)"></i>Individuals · 16%</span>
+                <span><i style="--c:var(--butter)"></i>Marketplace · 16%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESIGN SYSTEM -->
+  <section class="block">
+    <div class="sec-head">
+      <div><div class="kicker">Design system</div><h2>The REBIRTH palette</h2></div>
+      <p>Pastel but bright, with no black backgrounds anywhere. Each category and each stage of an item's journey has its own colour.</p>
+    </div>
+    <div class="palette">
+      <div class="sw" style="--c:var(--lime)">Lime<small>#C2EF6B</small></div>
+      <div class="sw" style="--c:var(--coral)">Coral<small>#FF8C73</small></div>
+      <div class="sw" style="--c:var(--sky)">Sky<small>#74CCEC</small></div>
+      <div class="sw" style="--c:var(--lavender)">Lavender<small>#B39DF5</small></div>
+      <div class="sw" style="--c:var(--butter)">Butter<small>#FFD66B</small></div>
+      <div class="sw" style="--c:var(--blush)">Blush<small>#FFB8CB</small></div>
+      <div class="sw" style="--c:var(--cream-2)">Cream<small>#FFF7EC</small></div>
+      <div class="sw dark" style="--c:var(--plum)">Plum<small>#3D2C5A</small></div>
+    </div>
+    <div class="type-row">
+      <div class="type-card"><small class="muted">Headings · Baloo 2</small><div class="big">Second chances <span style="color:var(--coral)">हर चीज़</span></div></div>
+      <div class="type-card"><small class="muted">Body · Nunito</small><p style="font-size:1.15rem;margin-top:8px">Friendly, readable text for listings, messages and impact reports. Baloo 2 also covers Hindi, so the whole app can switch languages.</p></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="block">
+    <div class="cta">
+      <div>
+        <h2>Got something sitting in a corner?</h2>
+        <p>Kabir rebuilt his art studio with donated tables and leftover paint. Your corner could be someone's beginning.</p>
+        <button class="btn" data-confetti>🎉 Give it a second chance</button>
+      </div>
+      <div class="art" data-char="kabir" data-wave="1"></div>
+    </div>
+  </section>
+
+  <footer><span style="color:var(--coral)">RE</span>BIRTH · design preview · all characters drawn in code · sample data</footer>
+</div>
+
+<script>
+/* ---------------- character builder (clay-style SVG) ---------------- */
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v) => Math.max(0, Math.min(255, v + amt));
+  return '#' + [c(n >> 16), c((n >> 8) & 255), c(n & 255)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+const CAST = {
+  aarav:  { name: 'Aarav',  role: 'Student · Receiver', bg: 'var(--sky-t)',    skin: '#C68863', hair: '#3A2418', style: 'messy', shirt: '#6C8CFF', hood: true,
+            line: 'Got a free laptop for his coding classes. Now he tutors other kids on it.' },
+  meera:  { name: 'Meera',  role: 'Restaurant owner · Donor', bg: 'var(--coral-t)', skin: '#B97A56', hair: '#2B1A12', style: 'bun', shirt: '#FF8C73', chef: true, bindi: true,
+            line: 'Lists her kitchen’s surplus every night instead of throwing it away.' },
+  kabir:  { name: 'Kabir',  role: 'Artist · Repair hub', bg: 'var(--lime-t)', skin: '#9C6644', hair: '#1E140F', style: 'curly', shirt: '#74CCEC', wheel: true,
+            line: 'Turns broken furniture and leftover paint into art for community spaces.' },
+  dadi:   { name: 'Dadi',   role: 'Grandmother · Donor', bg: 'var(--lav-t)', skin: '#D59873', hair: '#ECE7F2', style: 'bun', shirt: '#B39DF5', glasses: true, bindi: true,
+            line: 'Gave away her old sewing machine. It now earns a living for a women’s co-op.' },
+  ravi:   { name: 'Ravi',   role: 'Volunteer driver', bg: 'var(--butter-t)', skin: '#8D5A3B', hair: '#20140E', style: 'short', shirt: '#9ADB3C', cap: '#FF8C73', mustache: true,
+            line: 'Does 6 pickups every Sunday on routes REBIRTH plans for him.' },
+  fatima: { name: 'Ms. Fatima', role: 'Teacher · NGO partner', bg: 'var(--blush-t)', skin: '#C98F68', scarf: '#3FB8A8', shirt: '#FFD66B',
+            line: 'Furnished two classrooms with chairs a tech office no longer needed.' },
+};
+
+function personSVG(o, wave) {
+  const s = o.skin, h = o.hair, sd = shade(s, -22);
+  let back = '', hairFront = '', acc = '';
+  if (o.scarf) {
+    back += `<ellipse cx="100" cy="98" rx="60" ry="64" fill="${o.scarf}"/>`;
+    hairFront += `<path d="M46 102 C42 44 158 44 154 102 C148 70 128 56 100 56 C72 56 52 70 46 102Z" fill="${o.scarf}"/>
+                  <path d="M42 112 C48 150 72 162 100 164 C128 162 152 150 158 112 L166 182 C140 196 60 196 34 182Z" fill="${shade(o.scarf, -12)}"/>`;
+  }
+  if (o.style === 'bun') back += `<circle cx="100" cy="40" r="21" fill="${h}"/><circle cx="100" cy="40" r="21" fill="url(#glow)"/>`;
+  if (o.hood) back += `<path d="M54 172 C52 140 148 140 146 172Z" fill="${shade(o.shirt, -30)}"/>`;
+
+  if (o.style === 'short') hairFront += `<path d="M52 96 C46 52 78 40 100 40 C126 40 156 52 148 96 C142 74 124 64 100 66 C80 64 60 74 52 96Z" fill="${h}"/>`;
+  if (o.style === 'messy') hairFront += `<path d="M50 100 C44 52 78 38 100 38 C128 38 158 52 150 100 C144 76 124 64 100 66 C80 64 58 76 50 100Z" fill="${h}"/>
+     <path d="M62 60 Q70 26 92 44 Q102 18 118 42 Q140 26 140 62 Q120 52 100 56 Q80 50 62 60Z" fill="${h}"/>
+     <path d="M88 60 Q96 76 84 86" stroke="${h}" stroke-width="9" stroke-linecap="round" fill="none"/>`;
+  if (o.style === 'bun') hairFront += `<path d="M52 100 C48 54 76 44 100 44 C124 44 152 54 148 100 C142 74 120 62 100 66 C80 62 58 74 52 100Z" fill="${h}"/>`;
+  if (o.style === 'curly') {
+    let c = '';
+    for (let i = 0; i <= 10; i++) { const a = Math.PI * (1.05 + i * 0.09); c += `<circle cx="${100 + Math.cos(a) * 46}" cy="${92 + Math.sin(a) * 50}" r="15" fill="${h}"/>`; }
+    hairFront += c + `<ellipse cx="100" cy="52" rx="40" ry="16" fill="${h}"/>`;
+  }
+
+  if (o.chef) acc += `<g><path d="M62 56 C46 28 78 8 100 22 C122 8 154 28 138 56Z" fill="#fff"/><rect x="62" y="48" width="76" height="18" rx="8" fill="#F3EEF8"/><path d="M62 56 C46 28 78 8 100 22 C122 8 154 28 138 56Z" fill="url(#shade)"/></g>`;
+  if (o.cap) acc += `<path d="M52 82 C52 34 148 34 148 82Z" fill="${o.cap}"/><path d="M60 80 C90 74 150 74 178 86 C160 94 110 92 60 88Z" fill="${shade(o.cap, -25)}"/><circle cx="100" cy="40" r="5" fill="${shade(o.cap, -25)}"/>`;
+  if (o.glasses) acc += `<g fill="rgba(255,255,255,.25)" stroke="#5A4370" stroke-width="3.5"><circle cx="82" cy="100" r="13"/><circle cx="118" cy="100" r="13"/></g><path d="M95 99 Q100 95 105 99" stroke="#5A4370" stroke-width="3.5" fill="none"/>`;
+  if (o.bindi) acc += `<circle cx="100" cy="80" r="3.2" fill="#E2445C"/>`;
+  if (o.mustache) acc += `<path d="M86 116 Q93 110 100 115 Q107 110 114 116 Q107 120 100 117 Q93 120 86 116Z" fill="${h}"/>`;
+
+  const wheel = o.wheel ? `<g class="wheel-spin"><circle cx="160" cy="196" r="34" fill="none" stroke="#2F9C8F" stroke-width="9"/>
+     <g stroke="#2F9C8F" stroke-width="3"><line x1="160" y1="164" x2="160" y2="228"/><line x1="128" y1="196" x2="192" y2="196"/><line x1="137" y1="173" x2="183" y2="219"/><line x1="183" y1="173" x2="137" y2="219"/></g>
+     <circle cx="160" cy="196" r="7" fill="#FFD66B"/></g>` : '';
+
+  const arm = wave ? `<g class="wave" style="transform-origin:150px 176px">
+     <path d="M146 180 C160 160 166 140 166 124" stroke="${o.shirt}" stroke-width="20" stroke-linecap="round" fill="none"/>
+     <circle cx="167" cy="114" r="13" fill="${s}"/><circle cx="167" cy="114" r="13" fill="url(#glow)"/></g>` : '';
+
+  return `<svg viewBox="-6 0 212 232" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${o.name}">
+    ${back}
+    <path d="M38 232 C38 168 66 150 100 150 C134 150 162 168 162 232Z" fill="${o.shirt}"/>
+    <path d="M38 232 C38 168 66 150 100 150 C134 150 162 168 162 232Z" fill="url(#glow)"/>
+    <path d="M38 232 C38 168 66 150 100 150 C134 150 162 168 162 232Z" fill="url(#shade)"/>
+    ${wheel}
+    <rect x="88" y="128" width="24" height="28" rx="10" fill="${sd}"/>
+    ${o.scarf ? '' : `<circle cx="53" cy="102" r="11" fill="${sd}"/><circle cx="147" cy="102" r="11" fill="${sd}"/>`}
+    <ellipse cx="100" cy="98" rx="47" ry="50" fill="${s}"/>
+    <ellipse cx="100" cy="98" rx="47" ry="50" fill="url(#shade)"/>
+    <ellipse cx="100" cy="98" rx="47" ry="50" fill="url(#glow)"/>
+    <ellipse cx="74" cy="116" rx="9" ry="6" fill="#FF7E93" opacity=".45"/>
+    <ellipse cx="126" cy="116" rx="9" ry="6" fill="#FF7E93" opacity=".45"/>
+    <g class="eyes">
+      <ellipse cx="82" cy="100" rx="6.5" ry="8.5" fill="#2E1F3E"/><ellipse cx="118" cy="100" rx="6.5" ry="8.5" fill="#2E1F3E"/>
+      <circle cx="84.5" cy="96.5" r="2.4" fill="#fff"/><circle cx="120.5" cy="96.5" r="2.4" fill="#fff"/>
+    </g>
+    <ellipse cx="100" cy="110" rx="4" ry="3" fill="${sd}"/>
+    <path d="M88 121 Q100 133 112 121" stroke="#7A2E3A" stroke-width="4" stroke-linecap="round" fill="none"/>
+    ${hairFront}
+    ${acc}
+    ${arm}
+  </svg>`;
+}
+
+function dogSVG() {
+  return `<svg viewBox="0 0 170 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chhotu the dog">
+    <g class="tail" style="transform-origin:128px 112px"><path d="M126 114 C152 108 160 84 150 72" stroke="#D9934F" stroke-width="13" fill="none" stroke-linecap="round"/></g>
+    <ellipse cx="94" cy="122" rx="46" ry="28" fill="#D9934F"/><ellipse cx="94" cy="122" rx="46" ry="28" fill="url(#glow)"/>
+    <path d="M40 46 C14 44 12 96 32 104 C44 92 50 70 54 58Z" fill="#A8642F"/>
+    <path d="M120 46 C146 44 148 96 128 104 C116 92 110 70 106 58Z" fill="#A8642F"/>
+    <ellipse cx="80" cy="74" rx="46" ry="42" fill="#D9934F"/>
+    <path d="M80 34 C72 56 58 78 60 96 C68 114 92 114 100 96 C102 78 88 56 80 34Z" fill="#FFF4E6"/>
+    <ellipse cx="80" cy="98" rx="27" ry="19" fill="#FFF4E6"/>
+    <ellipse cx="80" cy="74" rx="46" ry="42" fill="url(#glow)"/>
+    <g class="eyes"><ellipse cx="62" cy="74" rx="7" ry="8.5" fill="#2E1F3E"/><ellipse cx="98" cy="74" rx="7" ry="8.5" fill="#2E1F3E"/>
+      <circle cx="64.5" cy="71" r="2.5" fill="#fff"/><circle cx="100.5" cy="71" r="2.5" fill="#fff"/></g>
+    <ellipse cx="80" cy="90" rx="9" ry="6.5" fill="#2E1F3E"/>
+    <path d="M70 100 Q80 108 90 100" stroke="#2E1F3E" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M74 103 C74 118 86 118 86 103Z" fill="#FF7E93"/>
+    <ellipse cx="50" cy="90" rx="7" ry="4.5" fill="#FF9AAA" opacity=".55"/><ellipse cx="110" cy="90" rx="7" ry="4.5" fill="#FF9AAA" opacity=".55"/>
+    <ellipse cx="64" cy="144" rx="15" ry="9" fill="#FFF4E6"/><ellipse cx="104" cy="144" rx="15" ry="9" fill="#FFF4E6"/>
+  </svg>`;
+}
+
+// mount characters wherever data-char is used
+document.querySelectorAll('[data-char]').forEach(el => {
+  const key = el.dataset.char;
+  el.innerHTML = key === 'dog' ? dogSVG() : personSVG(CAST[key], el.dataset.wave === '1');
+});
+
+// cast grid
+const castGrid = document.getElementById('castGrid');
+castGrid.innerHTML = `<div class="person intro"><h3>Real people. Real second chances.</h3><p>A diverse cast from across India, including a mascot every Indian street knows.</p></div>` +
+  Object.entries(CAST).map(([k, o], i) => `
+    <article class="person" style="--bg:${o.bg}">
+      <div class="art ${i % 2 ? 'bob' : ''}">${personSVG(o, k === 'fatima' || k === 'dadi')}</div>
+      <h3>${o.name}</h3><div class="role">${o.role}</div><p>${o.line}</p>
+    </article>`).join('') +
+  `<article class="person" style="--bg:var(--butter-t)"><div class="art">${dogSVG()}</div><h3>Chhotu</h3><div class="role">Mascot · Good boy</div><p>Shows up on loading screens and empty pages, and does a happy dance when a delivery lands.</p></article>`;
+
+// categories
+const CATS = [
+  ['🍲','Food','2-hour window','var(--coral-t)'], ['💻','Electronics','Laptops, phones','var(--sky-t)'],
+  ['🪑','Furniture','Chairs, beds','var(--mint-t)'], ['👕','Clothing','Clothes, blankets','var(--blush-t)'],
+  ['🧱','Construction','Bricks, tiles','var(--butter-t)'], ['📚','Books','Stationery too','var(--lav-t)'],
+  ['🍳','Home & kitchen','Utensils, decor','var(--lime-t)'], ['🧸','Toys & baby','Prams, cribs','var(--blush-t)'],
+  ['⚽','Sports','Bikes, gear','var(--sky-t)'], ['🩺','Medical aids','Wheelchairs','var(--mint-t)'],
+  ['🔧','Tools','Hardware','var(--butter-t)'], ['🏭','Office surplus','Bulk, packaging','var(--lav-t)'],
+  ['♻️','Scrap','For recyclers','var(--lime-t)'], ['📦','Anything else','Just snap it','var(--coral-t)'],
+];
+document.getElementById('cats').innerHTML = CATS.map(([i, n, s, c]) =>
+  `<div class="cat"><div class="tile" style="--c:${c}">${i}</div><b>${n}</b><small>${s}</small></div>`).join('');
+
+// confetti celebration
+const COLORS = ['#C2EF6B', '#FF8C73', '#74CCEC', '#B39DF5', '#FFD66B', '#FFB8CB'];
+document.querySelectorAll('[data-confetti]').forEach(btn => btn.addEventListener('click', e => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = btn.getBoundingClientRect();
+  for (let i = 0; i < 36; i++) {
+    const p = document.createElement('span');
+    p.className = 'confetti';
+    const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * 160;
+    p.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px;background:${COLORS[i % 6]};--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d - 60}px;--r:${Math.random() * 720}deg;border-radius:${i % 3 ? '4px' : '50%'}`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+}));
+
+// hero parallax on the giant word
+const big = document.querySelector('.bigword');
+addEventListener('pointermove', e => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const x = (e.clientX / innerWidth - .5) * 24, y = (e.clientY / innerHeight - .5) * 14;
+  big.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+});
+</script>

@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/* ============================================================
+   REBIRTH design system — "clay world"
+   Pastel-bright palette on warm cream. No dark backgrounds.
+   ============================================================ */
+@theme {
+  --color-cream: #FFF7EC;
+  --color-cream-2: #FDEBD3;
+  --color-card: #FFFDF8;
+  --color-plum: #3D2C5A;
+  --color-plum-soft: #6E5D8C;
+
+  --color-lime: #C2EF6B;
+  --color-coral: #FF8C73;
+  --color-sky: #74CCEC;
+  --color-lavender: #B39DF5;
+  --color-butter: #FFD66B;
+  --color-blush: #FFB8CB;
+  --color-mint: #9FE3C9;
+  --color-violet: #8C6BEA;
+
+  /* tints for card backgrounds */
+  --color-lime-t: #EEFBD6;
+  --color-coral-t: #FFE6DF;
+  --color-sky-t: #DDF3FB;
+  --color-lavender-t: #ECE5FF;
+  --color-butter-t: #FFF3CF;
+  --color-blush-t: #FFE7EE;
+  --color-mint-t: #E0F7EE;
+
+  --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-sans: "Nunito", "Segoe UI", system-ui, sans-serif;
+
+  --radius-clay: 2.25rem;
+
+  --animate-bob: bob 4s ease-in-out infinite;
+  --animate-drift: drift 9s ease-in-out infinite;
+  --animate-wag: wag 0.5s ease-in-out infinite alternate;
+  --animate-wave: wave 2.2s ease-in-out infinite;
+  --animate-blink: blink 4.5s infinite;
+  --animate-spin-slow: spin 8s linear infinite;
+
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(18px); } }
+  @keyframes wag { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+  @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-14deg); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+}
+
+/* Clay shadows: soft drop shadow + inner highlight + inner bottom shade */
+@utility clay {
+  box-shadow:
+    0 22px 40px -18px rgb(61 44 90 / 0.3),
+    0 6px 14px -6px rgb(61 44 90 / 0.12),
+    inset 0 -6px 0 rgb(61 44 90 / 0.06),
+    inset 0 4px 10px rgb(255 255 255 / 0.85);
+}
+@utility clay-sm {
+  box-shadow:
+    0 10px 20px -10px rgb(61 44 90 / 0.3),
+    inset 0 -4px 0 rgb(61 44 90 / 0.08),
+    inset 0 3px 6px rgb(255 255 255 / 0.8);
+}
+@utility clay-inset {
+  box-shadow: inset 0 3px 6px rgb(61 44 90 / 0.12), inset 0 -2px 0 rgb(255 255 255 / 0.8);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-plum);
+  font-family: var(--font-sans);
+  background-image:
+    radial-gradient(600px 400px at 90% -5%, var(--color-lavender-t), transparent 70%),
+    radial-gradient(500px 380px at -5% 20%, var(--color-lime-t), transparent 70%),
+    radial-gradient(700px 500px at 100% 60%, var(--color-blush-t), transparent 70%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.05; text-wrap: balance; }
+
+:focus-visible { outline: 3px solid var(--color-lavender); outline-offset: 3px; }
+
+/* character parts */
+.char-eyes { transform-box: fill-box; transform-origin: center; animation: var(--animate-blink); }
+.char-wave { transform-box: view-box; animation: var(--animate-wave); }
+.char-wheel { transform-box: fill-box; transform-origin: center; animation: var(--animate-spin-slow); }
+.char-tail { animation: var(--animate-wag); }
+
+/* confetti */
+.confetti-piece {
+  position: fixed; z-index: 100; width: 12px; height: 12px; pointer-events: none;
+  animation: confetti-pop 1.1s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes confetti-pop { to { transform: translate(var(--x), var(--y)) rotate(var(--r)); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
