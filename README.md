@@ -2,9 +2,22 @@
 
 **A world where everything gets a second chance.**
 
-REBIRTH connects unused resources (surplus food, leftover building materials, old electronics, furniture, clothes and more) with the schools, NGOs, shelters and people who can use them. AI identifies items from photos, recommends matches, plans volunteer routes, forecasts supply and demand, and measures the environmental impact of every handover.
+A restaurant has surplus food. A builder has leftover bricks. A family has an old laptop. A school needs chairs. REBIRTH connects things people no longer need with the schools, NGOs, shelters and neighbours who can use them, so that useful things don't end up in a landfill.
 
-> Personal project · designed for India (₹, English + Hindi), with region settings kept in configuration.
+Every item gets three chances: **free** for people in need first, then a **low-price marketplace**, then **repair or recycling**.
+
+**Working today**
+
+- 📸 **Snap a photo and AI fills in the listing.** A CLIP model recognises the item, suggests category, title and condition, and blocks restricted items. It runs on REBIRTH's own server.
+- 🗺️ **Map and near-me search.** Pins for items and needs within 2 to 25 km. Donors' locations are rounded to about 100 m until a request is accepted.
+- 🔄 **The three-chance lifecycle.** Time-based stages by category (food 2 hours, furniture 5 days, electronics 7 days); requests, accept, and handover confirmation.
+- 👥 **Six roles.** Donors, NGOs and schools, individuals, volunteers, businesses and recyclers, each with its own permissions.
+- 🙋 **Needs board.** Organisations post what they're missing; urgent needs are shown first.
+- 🎨 **A colourful "clay world" design** with an original cast of animated cartoon characters drawn in code.
+
+**Coming next:** smart matching between items and needs, optimised volunteer pickup routes, supply-and-demand forecasting, CO₂ and impact reports, UPI payments, and organisation verification (see the [roadmap](#roadmap)).
+
+> Personal project · built for India (₹, English + Hindi). Region settings are configuration, not code.
 
 ## How an item moves
 
