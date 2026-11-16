@@ -51,8 +51,8 @@ export function Hero() {
           Snap a photo of anything you don&apos;t need. REBIRTH finds a school, NGO or neighbour who does, and a volunteer to bring it there.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <ButtonLink href="/signup" variant="coral">📸 Give something</ButtonLink>
-          <ButtonLink href="/#categories">🔎 Find what you need</ButtonLink>
+          <ButtonLink href="/listings/new" variant="coral">📸 Give something</ButtonLink>
+          <ButtonLink href="/listings">🔎 Find what you need</ButtonLink>
         </div>
         <dl className="mt-8 flex flex-wrap gap-7">
           {STATS.map((s) => (

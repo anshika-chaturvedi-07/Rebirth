@@ -17,7 +17,8 @@ REBIRTH connects unused resources (surplus food, leftover building materials, ol
 | Layer | Choice |
 |---|---|
 | Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS v4, Framer Motion |
-| Backend | FastAPI (Python), Pydantic |
+| Auth | FastAPI-issued JWT in an httpOnly cookie, bcrypt password hashing, role-based permissions |
+| Backend | FastAPI (Python), Pydantic, SQLAlchemy 2.0, Alembic |
 | Data | PostgreSQL + PostGIS, Redis |
 | AI / data science | PyTorch + CLIP (vision), LightGBM (matching), Prophet (forecasting), OR-Tools (routing) |
 | Infra | Docker, GitHub Actions, Vercel + Render + Supabase |
@@ -63,14 +64,42 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate        # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+alembic upgrade head          # create the database (SQLite by default, Postgres via DATABASE_URL)
+python -m app.seed            # demo data for Bengaluru (add --reset to start over)
 uvicorn app.main:app --reload
 ```
+
+The frontend forwards `/api/*` to the backend (see `frontend/next.config.ts`), so sessions use a same-origin, httpOnly cookie.
+
+**Demo accounts** (local seed data only, password `rebirth-demo` for all):
+
+| Email | Role |
+|---|---|
+| `meera@rebirth.test` | Donor (restaurant) |
+| `csr@brightlabs.rebirth.test` | Business (CSR donor) |
+| `fatima@rebirth.test` | Verified school |
+| `hope@rebirth.test` | Verified shelter |
+| `aarav@rebirth.test` | Individual (student) |
+| `ravi@rebirth.test` | Volunteer |
+| `kabir@rebirth.test` | Repairer / recycler |
 
 **Tests**
 
 ```bash
 cd backend && pytest
 ```
+
+## Accounts, roles and the item lifecycle
+
+| Role | Can list items | Claims in **free** stage | Claims in **marketplace** | Claims in **recycle** | Posts needs |
+|---|---|---|---|---|---|
+| Donor / business | ✓ | | ✓ | | |
+| NGO / school | ✓ | ✓ | ✓ | | ✓ |
+| Individual | ✓ | ✓ (max 3 open) | ✓ | | ✓ |
+| Repairer / recycler | ✓ | | ✓ | ✓ | |
+| Volunteer | | | ✓ | | |
+
+A listing's stage comes from two timestamps set when it is created (`priority_until`, `marketplace_until`), using each category's rules. That means stages change on time without a background job and can be filtered in SQL. Food needs a best-before time and is marked expired after it. Donors accept one request, which reserves the item, then confirm the handover.
 
 ## Design system: "clay world"
 
@@ -89,7 +118,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 ## Roadmap
 
 - [x] **Phase 1:** design system, character cast, landing page, sign-in / sign-up UI, API skeleton
-- [ ] **Phase 2:** accounts and roles (Auth.js + FastAPI), listings and requests, database
+- [x] **Phase 2:** accounts and roles (JWT cookie sessions), listings, requests and needs, database + migrations
 - [ ] **Phase 3:** map and location search (MapLibre + PostGIS)
 - [ ] **Phase 4:** AI photo identification and condition assessment
 - [ ] **Phase 5:** matching engine and volunteer route optimisation

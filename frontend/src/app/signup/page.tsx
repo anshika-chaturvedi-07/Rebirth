@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Lock, Mail, MapPin, Phone, User } from "lucide-react";
+import { Lock, Mail, MapPin, Phone, User as UserIcon } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field } from "@/components/auth/Field";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/Button";
+import { api } from "@/lib/api";
 import { burstConfetti } from "@/lib/confetti";
+import type { User } from "@/lib/types";
 
 const ROLES = [
   { id: "donor", icon: "🎁", title: "I want to give", hint: "Households, restaurants, shops, builders", bg: "bg-coral-t", ring: "outline-coral" },
@@ -20,23 +24,39 @@ const ROLES = [
 type RoleId = (typeof ROLES)[number]["id"];
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { setUser } = useAuth();
   const [role, setRole] = useState<RoleId>("donor");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [notice, setNotice] = useState("");
+  const [formError, setFormError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const submitBtn = e.currentTarget.querySelector("button[type=submit]")!;
     const d = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
     const next: Record<string, string> = {};
-    if (!d.name?.trim()) next.name = "Tell us your name or organisation's name.";
+    if ((d.name ?? "").trim().length < 2) next.name = "Tell us your name or organisation's name.";
     if (!/^\S+@\S+\.\S+$/.test(d.email ?? "")) next.email = "Enter a valid email address.";
-    if (d.phone && !/^(\+91[\s-]?)?[6-9]\d{9}$/.test(d.phone.replace(/\s/g, ""))) next.phone = "Enter a 10-digit Indian mobile number.";
-    if (!d.city?.trim()) next.city = "Which city are you in?";
+    if (d.phone && !/^(\+91[\s-]?)?[6-9]\d{9}$/.test(d.phone.replace(/[\s-]/g, ""))) next.phone = "Enter a 10-digit Indian mobile number.";
+    if ((d.city ?? "").trim().length < 2) next.city = "Which city are you in?";
     if ((d.password ?? "").length < 8) next.password = "Use at least 8 characters.";
+    else if (new TextEncoder().encode(d.password).length > 72) next.password = "Use 72 characters or fewer.";
     setErrors(next);
-    if (!Object.keys(next).length) {
-      burstConfetti(e.currentTarget.querySelector("button[type=submit]")!);
-      setNotice("Looks good! Accounts go live in the next build phase.");
+    setFormError("");
+    if (Object.keys(next).length) return;
+    setBusy(true);
+    try {
+      const user = await api<User>("/api/auth/register", {
+        body: { role, name: d.name.trim(), email: d.email.trim(), phone: d.phone?.trim() || null, city: d.city.trim(), password: d.password },
+      });
+      burstConfetti(submitBtn);
+      setUser(user);
+      router.push("/dashboard?welcome=1");
+    } catch (err) {
+      setFormError((err as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -64,7 +84,7 @@ export default function SignupPage() {
         </fieldset>
 
         <div className="grid gap-3.5 sm:grid-cols-2">
-          <Field id="name" name="name" label={role === "organisation" || role === "business" || role === "recycler" ? "Organisation name" : "Full name"} autoComplete="name" icon={<User size={18} />} iconBg="bg-coral" error={errors.name} />
+          <Field id="name" name="name" label={role === "organisation" || role === "business" || role === "recycler" ? "Organisation name" : "Full name"} autoComplete="name" icon={<UserIcon size={18} />} iconBg="bg-coral" error={errors.name} />
           <Field id="email" name="email" type="email" label="Email" autoComplete="email" icon={<Mail size={18} />} iconBg="bg-sky" error={errors.email} />
           <Field id="phone" name="phone" type="tel" label="Mobile (+91), optional" autoComplete="tel" icon={<Phone size={18} />} iconBg="bg-lime" error={errors.phone} />
           <Field id="city" name="city" label="City" autoComplete="address-level2" icon={<MapPin size={18} />} iconBg="bg-butter" error={errors.city} />
@@ -73,12 +93,12 @@ export default function SignupPage() {
 
         {role === "organisation" && (
           <p className="rounded-2xl bg-lavender-t px-4 py-3 text-sm font-semibold">
-            🛡️ Organisations are verified before claiming free items. You&apos;ll upload your registration (e.g. NGO Darpan ID or school UDISE code) after signing up.
+            🛡️ Verified organisations get a trust badge that donors look for. Verification with your NGO Darpan ID or school UDISE code is coming soon.
           </p>
         )}
 
-        <Button type="submit" variant="coral" className="w-full">Create my account 🎉</Button>
-        {notice && <p role="status" className="rounded-2xl bg-lime-t px-4 py-2.5 text-center text-sm font-bold">{notice}</p>}
+        <Button type="submit" variant="coral" className="w-full" disabled={busy}>{busy ? "Creating your account…" : "Create my account 🎉"}</Button>
+        {formError && <p role="alert" className="rounded-2xl bg-coral-t px-4 py-2.5 text-center text-sm font-bold">{formError}</p>}
       </form>
       <p className="mt-6 text-center font-bold text-plum-soft">
         Already a member? <Link href="/login" className="text-violet hover:underline">Sign in</Link>

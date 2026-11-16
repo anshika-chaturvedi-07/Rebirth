@@ -1,5 +1,5 @@
 # Local infrastructure for REBIRTH.
-# Phase 1 only needs the frontend and API; Postgres/PostGIS and Redis are ready for Phase 2.
+# Runs the API on Postgres/PostGIS. (Local dev can skip Docker: the API defaults to SQLite.)
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -17,6 +17,10 @@ services:
   api:
     build: ./backend
     env_file: ./backend/.env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://rebirth:rebirth@db:5432/rebirth
+      REDIS_URL: redis://redis:6379/0
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports: ["8000:8000"]
     depends_on: [db, redis]
 
