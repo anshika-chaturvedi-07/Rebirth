@@ -64,7 +64,8 @@ Then send me the link and I'll add it to the top of the README.
 
 Every `git push` to `main`:
 - runs the tests on GitHub (the **CI** badge in the README),
-- redeploys the API on Render and the website on Vercel automatically.
+- redeploys the website on Vercel automatically,
+- redeploys the API on Render automatically **only if Render is connected to GitHub**. If you created the Blueprint from the public repository URL (as the live demo was), open **rebirth-api → Manual Deploy → Deploy latest commit** after pushing, or connect GitHub under the service's Settings to make it automatic.
 
 ## Troubleshooting
 

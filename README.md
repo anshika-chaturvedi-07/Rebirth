@@ -4,6 +4,10 @@
 
 **A world where everything gets a second chance.**
 
+### 🌐 Live demo: **[rebirth-pied-nine.vercel.app](https://rebirth-pied-nine.vercel.app)**
+
+Sign in with any demo account below (password `rebirth-demo`), e.g. `fatima@rebirth.test`. The demo runs on free hosting: if it's been idle, the first load takes up to a minute while the server wakes up. AI photo recognition is switched off online (it needs more memory than the free plan has) and works when you run REBIRTH locally.
+
 A restaurant has surplus food. A builder has leftover bricks. A family has an old laptop. A school needs chairs. REBIRTH connects things people no longer need with the schools, NGOs, shelters and neighbours who can use them, so that useful things don't end up in a landfill.
 
 Every item gets three chances: **free** for people in need first, then a **low-price marketplace**, then **repair or recycling**.
@@ -252,7 +256,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 - [x] **Phase 6:** impact and circularity analytics, supply and demand forecasting with backtests, hotspot heatmaps
 - [x] **Phase 7:** UPI payments (simulated / Razorpay test mode), verification and admin console, reports and risk signals, reviews, badges, leaderboard, PDF impact reports
 - [x] **Phase 8 (code):** CI on SQLite + PostgreSQL, production settings, Render blueprint, Vercel setup, Cloudinary photo storage, wake-up screen ([DEPLOY.md](DEPLOY.md))
-- [ ] **Phase 8 (launch):** create the free accounts and publish the live link
+- [x] **Phase 8 (launch):** live on Vercel (website) + Render (API, Singapore) + Neon (Postgres, Singapore)
 
 ## Note on data
 
