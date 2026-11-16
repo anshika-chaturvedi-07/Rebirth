@@ -13,6 +13,8 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptyState, ErrorNote, LoadingState } from "@/components/ui/EmptyState";
 import { Select, Textarea } from "@/components/ui/FormBits";
 import { MatchScore, ReasonChips } from "@/components/matching/MatchScore";
+import { PayButton } from "@/components/trust/Checkout";
+import { ReportButton, ReviewBox, Stars } from "@/components/trust/Community";
 import { api } from "@/lib/api";
 import { burstConfetti } from "@/lib/confetti";
 import { CONDITION_LABEL, formatINR, formatQty, ROLE_LABEL, timeAgo, timeLeft } from "@/lib/format";
@@ -110,6 +112,11 @@ function OwnerPanel({ listing, onChange }: { listing: Listing; onChange: () => v
                 <span className="ml-auto text-xs font-bold text-plum-soft">{timeAgo(c.created_at)}</span>
               </div>
               {c.message && <p className="mt-1.5 text-sm">“{c.message}”</p>}
+              {listing.price_inr != null && c.stage === "marketplace" && (c.status === "accepted" || c.status === "completed") && (
+                <p className={`mt-2 w-fit rounded-full px-3 py-1 text-xs font-extrabold ${c.payment_status === "paid" ? "bg-lime" : "bg-cream-2"}`}>
+                  {c.payment_status === "paid" ? `💳 Paid ${formatINR(listing.price_inr)}` : c.payment_status === "refunded" ? "↩️ Refunded" : "⏳ Waiting for payment"}
+                </p>
+              )}
               {c.wants_delivery && (
                 <p className="mt-2 w-fit rounded-full bg-butter-t px-3 py-1 text-xs font-extrabold">
                   🚚 Asked for volunteer delivery{c.delivery_status ? ` · ${DELIVERY_LABEL[c.delivery_status]}` : ""}
@@ -129,6 +136,12 @@ function OwnerPanel({ listing, onChange }: { listing: Listing; onChange: () => v
                 )}
                 {c.status === "completed" && <span className="rounded-full bg-sky-t px-3 py-1 text-sm font-extrabold">🎉 Handed over</span>}
               </div>
+              {c.status === "completed" && listing.review_claim_id === c.id && !listing.my_review_stars && (
+                <div className="mt-3"><ReviewBox claimId={c.id} otherName={c.claimant.name} onDone={onChange} /></div>
+              )}
+              {c.status === "completed" && listing.my_review_stars != null && (
+                <p className="mt-2 flex items-center gap-1.5 text-sm font-bold text-plum-soft">You rated them <Stars value={listing.my_review_stars} /></p>
+              )}
             </li>
           ))}
         </ul>
@@ -200,9 +213,25 @@ function RequestPanel({ listing, onChange }: { listing: Listing; onChange: () =>
       completed: "You received this item. Thank you for giving it a second life! 🎉",
       cancelled: "You cancelled your request.",
     };
+    const owesPayment = listing.my_claim_status === "accepted" && listing.price_inr != null && listing.my_payment_status !== "paid"
+      && listing.stage !== "free" && listing.my_claim_id != null;
     return (
       <div className="grid gap-3">
         <p className="rounded-2xl bg-lime-t p-4 font-bold">{text[listing.my_claim_status]}</p>
+        {owesPayment && listing.price_inr != null && (
+          <div className="grid gap-2 rounded-2xl bg-sky-t p-3">
+            <p className="text-sm font-bold">Pay to confirm your purchase. The donor hands it over once you&apos;ve paid.</p>
+            <PayButton claimId={listing.my_claim_id!} amount={listing.price_inr} onPaid={onChange} />
+          </div>
+        )}
+        {listing.my_payment_status === "paid" && <p className="rounded-2xl bg-lime px-3 py-2 text-sm font-extrabold">💳 Paid {listing.price_inr != null ? formatINR(listing.price_inr) : ""}. Payment verified</p>}
+        {listing.my_payment_status === "refunded" && <p className="rounded-2xl bg-cream-2 px-3 py-2 text-sm font-extrabold">↩️ Your payment was refunded</p>}
+        {listing.my_claim_status === "completed" && listing.review_claim_id && !listing.my_review_stars && (
+          <ReviewBox claimId={listing.review_claim_id} otherName={listing.donor.name} onDone={onChange} />
+        )}
+        {listing.my_claim_status === "completed" && listing.my_review_stars != null && (
+          <p className="flex items-center gap-1.5 text-sm font-bold text-plum-soft">You rated the donor <Stars value={listing.my_review_stars} /></p>
+        )}
         {(listing.my_claim_status === "pending" || listing.my_claim_status === "accepted") && (
           <button onClick={cancel} disabled={busy} className="justify-self-start text-sm font-bold text-plum-soft underline hover:text-plum">Cancel my request</button>
         )}
@@ -307,6 +336,7 @@ function ListingDetail() {
   const isNew = useSearchParams().get("new") === "1";
   const { data: listing, error, loading, reload } = useApi<Listing>(`/api/listings/${id}`);
   const [photoIdx, setPhotoIdx] = useState(0);
+  const { user } = useAuth();
 
   if (loading && !listing) return <LoadingState />;
   if (error || !listing) return <EmptyState title="We couldn't find that item" action={<ButtonLink href="/listings">Back to explore</ButtonLink>}>{error ?? "It may have been removed."}</EmptyState>;
@@ -353,11 +383,12 @@ function ListingDetail() {
           </div>
           {listing.description && <p className="mt-4 whitespace-pre-line text-lg">{listing.description}</p>}
           <p className="mt-4 flex flex-wrap items-center gap-1.5 text-sm font-bold text-plum-soft">
-            Shared by {listing.donor.name}
+            Shared by <Link href={`/u/${listing.donor.id}`} className="text-violet hover:underline">{listing.donor.name}</Link>
             {listing.donor.verified && <BadgeCheck size={16} className="text-violet" aria-label="Verified" />}
             · {ROLE_LABEL[listing.donor.role]} · {timeAgo(listing.created_at)}
           </p>
           <div className="mt-6"><Journey listing={listing} /></div>
+          {user && !listing.is_owner && <div className="mt-4"><ReportButton targetType="listing" targetId={listing.id} label="Report this listing" /></div>}
         </article>
 
         <div className="grid h-fit gap-5">

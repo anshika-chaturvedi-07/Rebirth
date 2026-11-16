@@ -17,9 +17,12 @@ Every item gets three chances: **free** for people in need first, then a **low-p
 - 🚚 **Volunteer route planning.** Google OR-Tools plans one route over several pickups and drop-offs, and food always goes straight to its drop-off.
 - 🌱 **Impact dashboard.** CO₂e avoided, kilograms reused, meals, water, where items found a home, and neighbourhood circularity scores.
 - 🔮 **Supply and demand forecasts.** Weekly forecasts per category with shortage/surplus alerts and an honest, out-of-sample accuracy check.
+- 💳 **Marketplace payments.** UPI checkout with server-side signature verification, a 5% platform fee and automatic refunds (simulated by default; Razorpay test mode with your own keys).
+- 🛡️ **Trust and safety.** NGO Darpan / UDISE verification reviewed by admins, user reports, explainable risk signals, ratings and reviews.
+- 🏆 **Community.** Badges with progress, a privacy-aware leaderboard, public profiles and downloadable PDF impact reports for CSR teams.
 - 🎨 **A colourful "clay world" design** with an original cast of animated cartoon characters drawn in code.
 
-**Coming next:** UPI payments, downloadable CSR impact reports, organisation verification and gamification (see the [roadmap](#roadmap)).
+**Coming next:** a live deployment with automated tests on every push (see the [roadmap](#roadmap)).
 
 > Personal project · built for India (₹, English + Hindi). Region settings are configuration, not code.
 
@@ -111,6 +114,8 @@ The frontend forwards `/api/*` to the backend (see `frontend/next.config.ts`), s
 | `aarav@rebirth.test` | Individual (student) |
 | `ravi@rebirth.test` | Volunteer |
 | `kabir@rebirth.test` | Repairer / recycler |
+| `asha@rebirth.test` | NGO waiting for verification |
+| `admin@rebirth.test` | Admin: trust & safety console at `/admin` |
 
 **Tests**
 
@@ -138,6 +143,22 @@ A listing's stage comes from two timestamps set when it is created (`priority_un
 - **Search on any database:** a bounding-box filter runs in SQL on indexed `lat`/`lng` columns, then exact great-circle (haversine) distances are computed in Python. It can be swapped for PostGIS `ST_DWithin` without changing the API.
 - **Built-in places list** of Indian cities and Bengaluru localities, with aliases such as "Bangalore". No addresses are sent to a third-party geocoder.
 - **Privacy:** other users see a donor's location rounded to about 100 m. Only the donor and a requester whose request was accepted see the exact spot. Organisations' needs are shown exactly; individuals' needs are rounded.
+
+## Payments, trust and community
+
+**Payments** (`backend/app/services/payments.py`). Once a donor accepts a marketplace request, the buyer pays before the handover (and before a volunteer may collect it). REBIRTH keeps 5% and the rest goes to the donor; cancelling after paying refunds automatically. Two providers:
+- **Simulated UPI checkout** (default, no keys needed), clearly labelled as a test.
+- **Razorpay test mode**: put *your own* `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` (`rzp_test_…`; live keys are refused) in `backend/.env`. Orders go through Razorpay's Orders API and the browser opens Razorpay Checkout.
+
+Either way the server only marks a payment paid after verifying an HMAC-SHA256 signature over `order_id|payment_id`, and no card, UPI or bank details touch REBIRTH's servers.
+
+**Verification.** Organisations submit an NGO Darpan ID (`KA/2017/0123456`) or school UDISE+ code (11 digits). The format is validated, duplicates of an already-verified ID are refused, and an admin approves or rejects with a note in `/admin`.
+
+**Reports and risk signals** (`backend/app/services/trust.py`). Anyone can report a listing, need or member. The admin console also lists explainable patterns from the last 30 days: possible resale of free items, many free requests by one individual, frequent cancellations, new accounts making large requests, repeated reports. Signals never block anyone automatically.
+
+**Reviews, badges and leaderboard.** After a completed handover each side can rate the other once. Badges (first gift, food hero, climate champion, steady giver, road warrior, trusted, verified) show progress. The leaderboard ranks givers, volunteers and neighbourhoods. People appear as first name + initial, and people who *receive* help are never ranked. Public profiles show no email or phone.
+
+**Impact reports.** `/api/impact/me/report.pdf` builds a PDF (ReportLab) with totals, category and monthly tables, and the full method and factors, including a clear note that the factors are indicative and not an audited LCA.
 
 ## Impact, forecasts and hotspots
 
@@ -225,7 +246,7 @@ Pastel-bright palette on warm cream (no dark backgrounds), puffy clay cards, Bal
 - [x] **Phase 4:** photo uploads and AI photo identification (category, title, condition, safety checks)
 - [x] **Phase 5:** explainable matching, need-linked requests, volunteer deliveries and route optimisation
 - [x] **Phase 6:** impact and circularity analytics, supply and demand forecasting with backtests, hotspot heatmaps
-- [ ] **Phase 7:** marketplace and payments, impact reports, gamification, trust and safety
+- [x] **Phase 7:** UPI payments (simulated / Razorpay test mode), verification and admin console, reports and risk signals, reviews, badges, leaderboard, PDF impact reports
 - [ ] **Phase 8:** deployment and CI
 
 ## Note on data

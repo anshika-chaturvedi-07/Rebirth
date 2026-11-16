@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     vision_pretrained: str = "laion2b_s34b_b79k"
     vision_preload: bool = True  # warm the model up in a background thread at startup (~600 MB RAM)
 
+    # Payments: leave empty for the built-in simulated checkout; set Razorpay *test* keys to use Razorpay test mode
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+
     # Lifecycle rules
     marketplace_days: int = 14  # how long non-perishables stay in the marketplace before the recycle stage
     max_active_free_claims_individual: int = 3  # fair-use limit for individuals

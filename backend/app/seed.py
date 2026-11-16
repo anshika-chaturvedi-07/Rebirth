@@ -14,7 +14,10 @@ from app.core.security import hash_password
 from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.db.session import SessionLocal, utcnow
-from app.models import Claim, ClaimStatus, DeliveryTask, Listing, ListingStatus, Need, Photo, User
+from app.models import (
+    Claim, ClaimStatus, DeliveryTask, Listing, ListingStatus, Need, Payment, Photo, Report, Review, ReviewStatus, User,
+    VerificationRequest,
+)
 from app.services import deliveries
 from app.services import photos as photo_service
 from app.seed_history import generate as generate_history
@@ -32,6 +35,8 @@ USERS = [
     ("aarav", "individual", "Aarav Kumar", "aarav@rebirth.test", False),
     ("ravi", "volunteer", "Ravi Shetty", "ravi@rebirth.test", False),
     ("kabir", "recycler", "Kabir's Repair Studio", "kabir@rebirth.test", False),
+    ("asha", "organisation", "Asha Foundation", "asha@rebirth.test", False),
+    ("admin", "admin", "REBIRTH Admin", "admin@rebirth.test", False),
 ]
 
 AREAS = places.LOCALITIES["Bengaluru"]
@@ -79,13 +84,51 @@ NEEDS = [
 ]
 
 
+def seed_trust_and_community(db, users, listings, needs, now) -> None:
+    """Verification records, a completed handover with reviews, a marketplace purchase waiting for payment, a report."""
+    db.add_all([
+        VerificationRequest(user=users["fatima"], kind="udise", reference="29200100101", status=ReviewStatus.approved,
+                            reviewer_id=users["admin"].id, review_note="UDISE+ code checked.", created_at=now - timedelta(days=40),
+                            reviewed_at=now - timedelta(days=39)),
+        VerificationRequest(user=users["hope"], kind="darpan", reference="KA/2015/0012345", status=ReviewStatus.approved,
+                            reviewer_id=users["admin"].id, review_note="Darpan ID checked.", created_at=now - timedelta(days=60),
+                            reviewed_at=now - timedelta(days=58)),
+        VerificationRequest(user=users["asha"], kind="darpan", reference="KA/2019/0234567",
+                            note="Women's livelihood NGO in Jayanagar. Registration certificate available on request.",
+                            created_at=now - timedelta(hours=20)),
+    ])
+    # a finished handover last week, reviewed by both sides
+    created = now - timedelta(days=6)
+    rotis = Listing(donor=users["meera"], title="Rotis and dal for 40", description="Last week's surplus.", category="food",
+                    subcategory="Cooked meals", quantity=12, unit="kg", condition="good", city="Bengaluru", area="Koramangala",
+                    lat=12.9352, lng=77.6245, status=ListingStatus.completed, created_at=created,
+                    priority_until=created + timedelta(hours=2), marketplace_until=created + timedelta(hours=5))
+    done = Claim(listing=rotis, claimant=users["hope"], stage="free", status=ClaimStatus.completed,
+                 created_at=created + timedelta(minutes=30), updated_at=created + timedelta(hours=2))
+    db.add_all([rotis, done])
+    db.flush()
+    db.add_all([
+        Review(claim_id=done.id, author_id=users["hope"].id, subject_id=users["meera"].id, stars=5,
+               comment="Still warm when it arrived and packed so neatly. Our residents loved it."),
+        Review(claim_id=done.id, author_id=users["meera"].id, subject_id=users["hope"].id, stars=5,
+               comment="Picked up on time and sent us a thank-you photo!"),
+    ])
+    # Aarav is buying the monitors from the marketplace: accepted, waiting for payment
+    monitors = listings['24" office monitors']
+    db.add(Claim(listing=monitors, claimant=users["aarav"], stage="marketplace", status=ClaimStatus.accepted,
+                 message="For my coding practice setup. Can collect on Saturday.", created_at=now - timedelta(hours=3)))
+    monitors.status = ListingStatus.reserved
+    db.add(Report(reporter=users["dadi"], target_type="listing", target_id=listings["Broken keyboards and mice"].id,
+                  reason="misleading", details="Photos look like a different batch from the one described."))
+
+
 def run(reset: bool = False, history: bool = True) -> None:
     db = SessionLocal()
     try:
         if reset:
             for photo in db.scalars(select(Photo)).all():
                 photo_service.delete(photo.filename)
-            for model in (DeliveryTask, Claim, Photo, Need, Listing, User):
+            for model in (Review, Report, Payment, VerificationRequest, DeliveryTask, Claim, Photo, Need, Listing, User):
                 db.execute(delete(model))
             db.commit()
         if db.scalar(select(User.id).limit(1)):
@@ -95,7 +138,10 @@ def run(reset: bool = False, history: bool = True) -> None:
         pw = hash_password(DEMO_PASSWORD)
         users: dict[str, User] = {}
         for key, role, name, email, verified in USERS:
-            users[key] = User(role=role, name=name, email=email, city="Bengaluru", password_hash=pw, verified=verified)
+            # demo accounts are a year old (Asha is new), so "new account" risk signals behave realistically
+            joined = utcnow() - timedelta(days=2 if key == "asha" else 400)
+            users[key] = User(role=role, name=name, email=email, city="Bengaluru", password_hash=pw, verified=verified,
+                              created_at=joined)
             db.add(users[key])
         db.flush()
 
@@ -132,6 +178,7 @@ def run(reset: bool = False, history: bool = True) -> None:
             db.add(claim)
             db.flush()
             deliveries.create_for_claim(db, claim)
+        seed_trust_and_community(db, users, listings, needs, now)
         hist = generate_history(db, users) if history else None
         db.commit()
         if hist:

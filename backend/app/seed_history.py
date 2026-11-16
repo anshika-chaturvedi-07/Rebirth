@@ -25,10 +25,11 @@ from app.services.lifecycle import suggest_price
 WEEKS = 156  # three years: seasonal models need two full years plus held-out weeks
 SEED = 2026
 
+# community groups giving on behalf of many households are organisations, so their full name is shown
 COMMUNITY_DONORS = [
-    ("donor", "Koramangala Residents' Welfare Assn"), ("business", "GreenBasket Market"),
-    ("business", "Skyline Builders"), ("donor", "Indiranagar Apartment Drive"), ("business", "TechPark Cafeteria"),
-    ("business", "Uniform House"), ("donor", "Jayanagar Parents Collective"), ("business", "Comfort Linens"),
+    ("organisation", "Koramangala Residents' Welfare Assn"), ("business", "GreenBasket Market"),
+    ("business", "Skyline Builders"), ("organisation", "Indiranagar Apartment Drive"), ("business", "TechPark Cafeteria"),
+    ("business", "Uniform House"), ("organisation", "Jayanagar Parents Collective"), ("business", "Comfort Linens"),
 ]
 COMMUNITY_RECEIVERS = [
     ("organisation", "Annapurna Community Kitchen"), ("organisation", "Little Steps Children Home"),
@@ -78,7 +79,8 @@ def generate(db: Session, demo_users: dict[str, User]) -> dict[str, int]:
     for role, name in COMMUNITY_DONORS + COMMUNITY_RECEIVERS:
         slug = "".join(ch for ch in name.lower() if ch.isalnum())[:24]
         u = User(role=role, name=name, email=f"{slug}@history.rebirth.test", city="Bengaluru",
-                 password_hash="!", verified=role == Role.organisation)  # "!" can never match a bcrypt hash: no sign-in
+                 password_hash="!", verified=role == Role.organisation,
+                 created_at=now - timedelta(weeks=WEEKS + 4))  # joined before their simulated history starts  # "!" can never match a bcrypt hash: no sign-in
         db.add(u)
         (donors if (role, name) in COMMUNITY_DONORS else receivers).append(u)
     db.flush()

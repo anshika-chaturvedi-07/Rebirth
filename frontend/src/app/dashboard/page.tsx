@@ -239,8 +239,29 @@ function Dashboard({ user }: { user: User }) {
         </div>
       )}
 
+      {user.role === "organisation" && !user.verified && (
+        <Link href="/verify" className="clay mt-8 flex flex-wrap items-center gap-4 rounded-[2rem] bg-lavender-t p-5 transition-transform hover:-translate-y-0.5">
+          <span className="text-4xl" aria-hidden="true">🛡️</span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-xl">Get your organisation verified</b>
+            <span className="font-semibold text-plum-soft">Add your NGO Darpan ID or school UDISE code. Verified organisations get a badge and rank higher in matches.</span>
+          </span>
+          <span className="font-bold text-violet">Start →</span>
+        </Link>
+      )}
+
       <Suggestions user={user} />
       <MyImpactStrip />
+      {user.role !== "volunteer" && user.role !== "admin" && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <a href={`/api/impact/me/report.pdf?scope=${user.role === "organisation" || user.role === "individual" ? "received" : "given"}`}
+            className="clay-sm inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-bold hover:bg-cream">
+            📄 Download impact report (PDF)
+          </a>
+          <Link href="/leaderboard" className="text-sm font-bold text-violet hover:underline">🏆 See your badges</Link>
+          <span className="text-xs font-semibold text-plum-soft">Handy for CSR reporting or an NGO&apos;s annual report</span>
+        </div>
+      )}
 
       {canList && (
         <Section title="My listings" action={<Link href="/listings/new" className="font-bold text-violet hover:underline">+ New listing</Link>}>

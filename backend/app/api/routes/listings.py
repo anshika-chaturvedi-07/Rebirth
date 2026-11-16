@@ -10,8 +10,9 @@ from app.data import places
 from app.data.categories import CATEGORY_BY_SLUG
 from app.services.geo import bounding_box, haversine_km, public_coord
 from app.db.session import utcnow
-from app.models import Claim, ClaimStatus, Listing, ListingStatus, Need, NeedStatus, Photo, Role, Stage, User
+from app.models import Claim, ClaimStatus, Listing, ListingStatus, Need, NeedStatus, Photo, Review, Role, Stage, User
 from app.services import deliveries
+from app.api.routes.payments import needs_payment, paid_payment, refund_if_paid
 from app.schemas import ClaimIn, ClaimOut, ListingIn, ListingOut, ListingPage, MyClaimOut, UserBrief
 from app.services.lifecycle import (
     LifecycleError,
@@ -65,6 +66,11 @@ def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime, di
     # Exact location only for the donor and for someone whose request was accepted; everyone else sees ~100 m.
     exact = bool(viewer and (viewer.id == listing.donor_id or (mine and mine.status in (ClaimStatus.accepted, ClaimStatus.completed))))
     lat, lng = (listing.lat, listing.lng) if exact else (public_coord(listing.lat), public_coord(listing.lng))
+    review_claim_id = my_stars = None
+    done = next((c for c in listing.claims if c.status == ClaimStatus.completed), None) if listing.status == ListingStatus.completed else None
+    if done is not None and viewer is not None and viewer.id in (listing.donor_id, done.claimant_id):
+        review_claim_id = done.id
+        my_stars = db.scalar(select(Review.stars).where(Review.claim_id == done.id, Review.author_id == viewer.id))
     return ListingOut(
         id=listing.id, title=listing.title, description=listing.description, category=listing.category,
         subcategory=listing.subcategory, quantity=listing.quantity, unit=listing.unit, condition=listing.condition,
@@ -79,6 +85,9 @@ def to_out(db: Session, listing: Listing, viewer: User | None, now: datetime, di
         my_claim_id=mine.id if mine else None,
         my_claim_status=mine.status if mine else None,
         my_delivery_status=mine.delivery_status if mine else None,
+        my_payment_status=mine.payment_status if mine else None,
+        review_claim_id=review_claim_id,
+        my_review_stars=my_stars,
         can_claim=reason is None,
         claim_blocked_reason=reason,
     )
@@ -292,6 +301,7 @@ def cancel_claim(claim_id: int, db: DB, user: CurrentUser) -> Claim:
     if claim.status == ClaimStatus.accepted:
         claim.listing.status = ListingStatus.active  # back on offer
     deliveries.cancel_for_claim(claim)
+    refund_if_paid(claim)
     claim.status = ClaimStatus.cancelled
     db.commit()
     return claim
@@ -305,6 +315,8 @@ def complete_claim(claim_id: int, db: DB, user: CurrentUser) -> Claim:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the donor can confirm the handover.")
     if claim.status != ClaimStatus.accepted:
         raise HTTPException(status.HTTP_409_CONFLICT, "Accept the request before confirming the handover.")
+    if needs_payment(claim) and not paid_payment(claim):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This marketplace item hasn't been paid for yet.")
     claim.status = ClaimStatus.completed
     claim.listing.status = ListingStatus.completed
     deliveries.cancel_for_claim(claim)  # handed over directly, so no volunteer trip is needed

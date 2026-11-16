@@ -61,6 +61,9 @@ export interface Listing {
   my_claim_id: number | null;
   my_claim_status: ClaimStatus | null;
   my_delivery_status: DeliveryStatus | null;
+  my_payment_status: "created" | "paid" | "failed" | "refunded" | null;
+  review_claim_id: number | null;
+  my_review_stars: number | null;
   can_claim: boolean;
   claim_blocked_reason: string | null;
 }
@@ -78,6 +81,7 @@ export interface Claim {
   need_id: number | null;
   wants_delivery: boolean;
   delivery_status: DeliveryStatus | null;
+  payment_status: "created" | "paid" | "failed" | "refunded" | null;
 }
 
 export interface MyClaim extends Claim {

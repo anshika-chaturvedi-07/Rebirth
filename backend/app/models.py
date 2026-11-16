@@ -62,6 +62,19 @@ class DeliveryStatus(StrEnum):
     cancelled = "cancelled"
 
 
+class PaymentStatus(StrEnum):
+    created = "created"    # order created, waiting for the buyer
+    paid = "paid"
+    failed = "failed"
+    refunded = "refunded"
+
+
+class ReviewStatus(StrEnum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
 class NeedStatus(StrEnum):
     open = "open"
     fulfilled = "fulfilled"
@@ -133,9 +146,22 @@ class Claim(Base):
     need: Mapped["Need | None"] = relationship()
     delivery: Mapped["DeliveryTask | None"] = relationship(back_populates="claim", uselist=False)
 
+    payments: Mapped[list["Payment"]] = relationship(back_populates="claim", order_by="Payment.created_at")
+
     @property
     def delivery_status(self) -> str | None:
         return self.delivery.status if self.delivery is not None else None
+
+    @property
+    def payment_status(self) -> str | None:
+        """paid > created > refunded/failed; None when nothing was ever started."""
+        if not self.payments:
+            return None
+        statuses = {p.status for p in self.payments}
+        for s in (PaymentStatus.paid, PaymentStatus.created, PaymentStatus.refunded, PaymentStatus.failed):
+            if s in statuses:
+                return s
+        return None
 
 
 class Need(Base):
@@ -204,3 +230,79 @@ class DeliveryTask(Base):
 
     claim: Mapped[Claim] = relationship(back_populates="delivery")
     volunteer: Mapped[User | None] = relationship()
+
+
+class Payment(Base):
+    """Payment for a marketplace request. The platform keeps a small commission; the rest is the donor's payout."""
+
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    claim_id: Mapped[int] = mapped_column(ForeignKey("claims.id"), index=True)
+    payer_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    amount_inr: Mapped[int] = mapped_column(Integer)
+    fee_inr: Mapped[int] = mapped_column(Integer)          # platform commission
+    payout_inr: Mapped[int] = mapped_column(Integer)       # to the donor
+    provider: Mapped[str] = mapped_column(String(20))      # "mock" | "razorpay"
+    provider_order_id: Mapped[str] = mapped_column(String(80), unique=True)
+    provider_payment_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default=PaymentStatus.created, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    claim: Mapped[Claim] = relationship(back_populates="payments")
+
+
+class VerificationRequest(Base):
+    """An organisation asks to be verified with its NGO Darpan ID or school UDISE code; an admin reviews it."""
+
+    __tablename__ = "verification_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # "darpan" | "udise" | "other"
+    reference: Mapped[str] = mapped_column(String(40))
+    note: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default=ReviewStatus.pending, index=True)
+    reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    review_note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User] = relationship(foreign_keys=[user_id])
+
+
+class Review(Base):
+    """After a completed handover, each side can rate the other once."""
+
+    __tablename__ = "reviews"
+    __table_args__ = (Index("uq_reviews_claim_author", "claim_id", "author_id", unique=True),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    claim_id: Mapped[int] = mapped_column(ForeignKey("claims.id"), index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    subject_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    stars: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    author: Mapped[User] = relationship(foreign_keys=[author_id])
+
+
+class Report(Base):
+    """A user flags a listing, need or user for an admin to look at."""
+
+    __tablename__ = "reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reporter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    target_type: Mapped[str] = mapped_column(String(20))  # "listing" | "need" | "user"
+    target_id: Mapped[int] = mapped_column(Integer, index=True)
+    reason: Mapped[str] = mapped_column(String(40))
+    details: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="open", index=True)  # open | resolved | dismissed
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    reporter: Mapped[User] = relationship()

@@ -19,7 +19,10 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const { user, loading, logout } = useAuth();
   const router = useRouter();
-  const links = user?.role === "volunteer" ? [...LINKS, { href: "/volunteer", label: "Deliveries" }] : LINKS;
+  const links =
+    user?.role === "volunteer" ? [...LINKS, { href: "/volunteer", label: "Deliveries" }]
+    : user?.role === "admin" ? [...LINKS, { href: "/admin", label: "Admin" }]
+    : LINKS;
 
   async function signOut() {
     await logout();

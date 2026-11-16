@@ -11,6 +11,7 @@ from app.api.deps import DB, require_roles
 from app.db.session import utcnow
 from app.data.categories import CATEGORY_BY_SLUG
 from app.models import Claim, ClaimStatus, DeliveryStatus, DeliveryTask, Listing, ListingStatus, Role, User
+from app.api.routes.payments import needs_payment, paid_payment
 from app.services.geo import haversine_km, public_coord
 from app.services.routing import Point, Task, distance_km, plan_route
 
@@ -191,6 +192,8 @@ def picked_up(task_id: int, db: DB, user: Volunteer) -> DeliveryOut:
     t = _mine(db, task_id, user)
     if t.status != DeliveryStatus.assigned:
         raise HTTPException(status.HTTP_409_CONFLICT, "Only assigned deliveries can be picked up.")
+    if needs_payment(t.claim) and not paid_payment(t.claim):
+        raise HTTPException(status.HTTP_409_CONFLICT, "The buyer hasn't paid yet, so don't collect it.")
     t.status, t.picked_up_at = DeliveryStatus.picked_up, utcnow()
     db.commit()
     return _out(t, user)

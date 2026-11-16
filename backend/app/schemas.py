@@ -124,6 +124,9 @@ class ListingOut(BaseModel):
     my_claim_id: int | None = None
     my_claim_status: str | None = None
     my_delivery_status: str | None = None
+    my_payment_status: str | None = None
+    review_claim_id: int | None = None  # the completed handover this viewer can review
+    my_review_stars: int | None = None
     can_claim: bool = False
     claim_blocked_reason: str | None = None
 
@@ -152,6 +155,7 @@ class ClaimOut(BaseModel):
     need_id: int | None = None
     wants_delivery: bool = False
     delivery_status: str | None = None
+    payment_status: str | None = None
 
 
 class MyClaimOut(ClaimOut):
